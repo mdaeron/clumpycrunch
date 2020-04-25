@@ -224,16 +224,17 @@ app = Flask(__name__)
 default_payload = {
 	'display_results': False,
 	'rawdata_input_str': rawdata_input_str,
-	'rawdata_input_str_fw': pretty_table([l.split('\t') for l in rawdata_input_str.splitlines()], hsep = '  '),
 	'o17_R13_VPDB': 0.01118,
 	'o17_R18_VSMOW': 0.0020052,
 	'o17_R17_VSMOW': 0.00038475,
 	'o17_lambda': 0.528,
+	'wg_setting': 'wg_setting_fromsample',
 	'wg_setting_fromsample_samplename': 'ETH-3',
 	'wg_setting_fromsample_d13C': '1.71',
 	'wg_setting_fromsample_d18O': '-1.78',
 	'wg_setting_fromsample_acidfrac': '1.00813',
 	'rf_input_str': rf_input_str,
+	'stdz_method_setting': 'stdz_method_setting_integrated_fit',
 	}
 
 @app.route('/', methods = ['GET', 'POST'])
@@ -282,7 +283,6 @@ def proceed():
 	csv = 'Session,a,b,c,va,vb,vc,covab,covac,covbc,Xa,Ya,Xu,Yu'
 	for session in data.sessions:
 		s = data.sessions[session]
-		print(s)
 		Ga = [r for r in s['data'] if r['Sample'] in data.anchors]
 		Gu = [r for r in s['data'] if r['Sample'] in data.unknowns]
 		csv += f"\n{session},{s['a']},{s['b']},{s['c']},{s['CM'][0,0]},{s['CM'][1,1]},{s['CM'][2,2]},{s['CM'][0,1]},{s['CM'][0,2]},{s['CM'][1,2]},{';'.join([str(r['d47']) for r in Ga])},{';'.join([str(r['D47']) for r in Ga])},{';'.join([str(r['d47']) for r in Gu])},{';'.join([str(r['D47']) for r in Gu])}"
