@@ -431,7 +431,7 @@ class D47data(list):
 		+ `sep`: csv separator delimiting the fields
 		'''
 		txt = [[x.strip() for x in l.split(sep)] for l in txt.splitlines() if l.strip()]
-		data = [{k: v if k == 'UID' else smart_type(v) for k,v in zip(txt[0], l)} for l in txt[1:]]
+		data = [{k: v if k in ['UID', 'Session', 'Sample'] else smart_type(v) for k,v in zip(txt[0], l)} for l in txt[1:]]
 		self += data
 		self.refresh()
 
