@@ -249,6 +249,7 @@
 			<br>
 			<textarea
 				name="table_of_analyses_str"
+				style="font-size: 10pt"
 				class="invisible"
 				form="mainform"
 				cols="{{payload['table_of_analyses_cols']}}"
@@ -317,27 +318,5 @@
 			a.style.display = "block";
 			b.style.display = "none";
 		}	
-	}
-
-	function rawdata_input_str_asfw() {
-		var a = document.getElementById("rawdata_input_textarea");
-		a.style.display = "none";
-		var b = document.getElementById("rawdata_input_textarea_fw");
-		b.style.display = "block";
-		var c = document.getElementById("rawdata_input_str_asfw");
-		c.style.display = "none";
-		var d = document.getElementById("rawdata_input_str_astd");
-		d.style.display = "block";
-	}
-
-	function rawdata_input_str_astd() {
-		var a = document.getElementById("rawdata_input_textarea");
-		a.style.display = "block";
-		var b = document.getElementById("rawdata_input_textarea_fw");
-		b.style.display = "none";
-		var c = document.getElementById("rawdata_input_str_asfw");
-		c.style.display = "block";
-		var d = document.getElementById("rawdata_input_str_astd");
-		d.style.display = "none";
 	}
 </script>
