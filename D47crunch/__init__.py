@@ -380,7 +380,7 @@ class D47data(list):
 		self.unknowns = {s: self.samples[s] for s in self.samples if s not in self.Nominal_D47}
 
 
-	def read(self, filename, sep = ','):
+	def read(self, filename, sep = ',', session = ''):
 		'''
 		Read file in csv format to load data into a `D47data` object.
 		
@@ -402,12 +402,13 @@ class D47data(list):
 		
 		+ `fileneme`: the path of the file to read
 		+ `sep`: csv separator delimiting the fields
+		+ `session`: set `Session` field to this string for all analyses
 		'''
 		with open(filename) as fid:
-			self.input(fid.read(), sep = sep)
+			self.input(fid.read(), sep = sep, session = session)
 
 
-	def input(self, txt, sep = ','):
+	def input(self, txt, sep = ',', session = ''):
 		'''
 		Read `txt` string in csv format to load analysis data into a `D47data` object.
 
@@ -429,9 +430,15 @@ class D47data(list):
 		
 		+ `txt`: the csv string to read
 		+ `sep`: csv separator delimiting the fields
+		+ `session`: set `Session` field to this string for all analyses
 		'''
 		txt = [[x.strip() for x in l.split(sep)] for l in txt.splitlines() if l.strip()]
 		data = [{k: v if k in ['UID', 'Session', 'Sample'] else smart_type(v) for k,v in zip(txt[0], l)} for l in txt[1:]]
+
+		if session = '':
+			for r in data:
+				r['Session'] = session
+
 		self += data
 		self.refresh()
 
