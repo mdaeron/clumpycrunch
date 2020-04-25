@@ -161,11 +161,18 @@ def proceed():
 	payload['table_of_analyses_cols'] = len(payload['table_of_analyses'].splitlines()[0])
 	payload['table_of_analyses_csv'] = make_csv(toanalyses)
 
-	covars = "\n\nCORRELATIONS BETWEEN SAMPLE Δ47 VALUES:\n"
+	covars = "\n\nCOVARIANCE BETWEEN SAMPLE Δ47 VALUES:\n\n"
+	txt = [['Sample #1', 'Sample #2', 'Covariance', 'Correlation']]
 	unknowns = [k for k in data.unknowns]
 	for k, s1 in enumerate(unknowns):
-		for s2 in unknowns[:k]:
-			covars += f"\nΔ47[ {s1} ], Δ47[ {s2} ]: {data.sample_D47_covar(s1,s2)/data.samples[s1]['SE_D47']/data.samples[s2]['SE_D47']:.6f}"
+		for s2 in unknowns[k+1:]:
+			txt += [[
+				s1,
+				s2,
+				f"{data.sample_D47_covar(s1,s2):.4e}",
+				f"{data.sample_D47_covar(s1,s2)/data.samples[s1]['SE_D47']/data.samples[s2]['SE_D47']:.6f}",
+				]]
+	covars += pretty_table(txt, align = '<<>>')
 
 	payload['report'] = f"Report generated on {time.asctime()}\nClumpyCrunch v{__version__} using D47crunch v{vD47crunch}"
 	payload['report'] += "\n\nOXYGEN-17 CORRECTION PARAMETERS:\n" + pretty_table([['R13_VPDB', 'R18_VSMOW', 'R17_VSMOW', 'lambda_17'], [payload['o17_R13_VPDB'], payload['o17_R18_VSMOW'], payload['o17_R17_VSMOW'], payload['o17_lambda']]], align = '<<<<')
