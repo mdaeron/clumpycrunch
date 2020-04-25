@@ -1,1 +1,343 @@
-foo
+<!doctype html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+		<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+		<title>ClumpyCrunch 2.0</title>
+	</head>
+
+	<body>
+		<h1>ClumpyCrunch<div style='float:right;font-weight:normal'>v2.0</div></h1>
+
+			<h2>Oxygen-17 Correction Settings</h2>
+		
+			<br>
+			<input
+				type="text"
+				name="o17_R13_VPDB"
+				id="o17_R13_VPDB"
+				form="mainform"
+				size="12"
+				value="{{payload['o17_R13_VPDB']}}"
+				></input>
+			<label for="o17_R13_VPDB">(<sup>13</sup>C/<sup>12</sup>C) of VPDB</label>
+
+			<br>
+			<input
+				type="text"
+				name="o17_R18_VSMOW"
+				id="o17_R18_VSMOW"
+				form="mainform"
+				size="12"
+				value="{{payload['o17_R18_VSMOW']}}"
+				></input>
+			<label for="o17_R13_VPDB">(<sup>18</sup>O/<sup>16</sup>O) of VSMOW</label>
+
+			<br>
+			<input
+				type="text"
+				name="o17_R17_VSMOW"
+				id="o17_R17_VSMOW"
+				form="mainform"
+				size="12"
+				value="{{payload['o17_R17_VSMOW']}}"
+				></input>
+			<label for="o17_R17_VPDB">(<sup>17</sup>O/<sup>16</sup>O) of VSMOW</label>
+
+			<br>
+			<input
+				type="text"
+				name="o17_lambda"
+				id="o17_lambda"
+				form="mainform"
+				size="12"
+				value="{{payload['o17_lambda']}}"
+				></input>
+			<label for="o17_R13_VPDB">Triple oxygen isotope exponent (λ)</label>
+
+			<h2>WG Settings</h2>
+
+			<label for="wg_setting" style="margin-left:0">Working gas composition is:</label><br>
+			<input
+				type="radio"
+				id="wg_setting_radio_fromsample"
+				name="wg_setting"
+				value="wg_setting_fromsample"
+				form="mainform"
+				checked=true
+				onchange="wg_setting_show_fromsample()">
+			Based on analyses of a carbonate sample
+			<br>
+			<input
+				type="radio"
+				id="wg_setting_radio_explicit"
+				name="wg_setting"
+				value="wg_setting_explicit"
+				form="mainform"
+				onchange="wg_setting_show_explicit()">
+			Explicitly defined in the raw data
+
+			<div id="wg_setting_fromsample_group">
+				<div class="settings_readme">
+					Bulk WG composition is computed from analyses of the following sample:
+				</div>
+				
+				<br>
+				<input
+					type="text"
+					name="wg_setting_fromsample_samplename"
+					id="wg_setting_fromsample_samplename"
+					form="mainform"
+					size="12"
+					value="{{payload['wg_setting_fromsample_samplename']}}"
+					></input>
+				<label for="wg_setting_fromsample_samplename">Sample name</label>
+				
+				<br>
+				<input
+					type="text"
+					name="wg_setting_fromsample_d13C"
+					id="wg_setting_fromsample_d13C"
+					form="mainform"
+					size="12"
+					value="{{payload['wg_setting_fromsample_d13C']}}"
+					></input>
+				<label for="wg_setting_fromsample_d13C">δ<sup>13</sup>C<sub>VPDB</sub></label>
+				
+				<br>
+				<input
+					type="text"
+					name="wg_setting_fromsample_d18O"
+					id="wg_setting_fromsample_d18O"
+					form="mainform"
+					size="12"
+					value="{{payload['wg_setting_fromsample_d18O']}}"
+					></input>
+				<label for="wg_setting_fromsample_d18O">δ<sup>18</sup>O<sub>VPDB</sub></label>
+
+				<br>
+				<input
+					type="text"
+					name="wg_setting_fromsample_acidfrac"
+					id="wg_setting_fromsample_acidfrac"
+					form="mainform"
+					size="12"
+					value="{{payload['wg_setting_fromsample_acidfrac']}}"
+					></input>
+				<label for="wg_setting_fromsample_acidfrac">(<sup>18</sup>O/<sup>16</sup>O) fractionation factor of acid reaction</label>
+<!-- 
+				<select id="wg_setting_acidfrac_option" name="wg_setting_acidfrac_option" form="mainform">
+					<option value="wg_setting_acidfrac_Kim_90C">Calcite, 90 °C, Kim et al. (2007)</option>
+					<option value="wg_setting_acidfrac_Kim_70C">Calcite, 70 °C, Kim et al. (2007)</option>
+					<option value="wg_setting_acidfrac_Kim_25C">Calcite, 25 °C, Kim et al. (2007)</option>
+					<option value="wg_setting_acidfrac_DS_90C">Calcite, 90 °C, Das Sharma et al. (2002)</option>
+					<option value="wg_setting_acidfrac_DS_70C">Calcite, 70 °C, Das Sharma et al. (2002)</option>
+					<option value="wg_setting_acidfrac_DS_25C">Calcite, 25 °C, Das Sharma et al. (2002)</option>
+					<option value="wg_setting_acidfrac_explicit">Specify your own value</option>
+				</select>
+ -->
+				
+			</div>
+
+			<div id="wg_setting_explicit_group" style="display:none">
+				<div class="settings_readme">
+					Bulk composition of the WG must be explicitly defined in each line of the raw data, using fields <span class="field">d13Cwg_VPDB</span> and  <span class="field">d18Owg_VSMOW</span>.
+				</div>
+			</div>
+
+
+			<h2>Standardization Settings</h2>
+		
+			<div class="settings_readme">
+			In the text box below, specify the “true” Δ<sub>47</sub> values and the names of anchors, separated by a tab (one line per anchor).
+			</div>
+			<label for="rf_input_str" style="margin-left:0">Δ<sub>47</sub> Reference Frame:</label>
+			<br>
+			<textarea name="rf_input_str" id="rf_input_textarea" form="mainform" cols="24" rows="6">{{payload['rf_input_str']}}</textarea>
+			
+			<br><br>
+			<label for="stdz_method_setting" style="margin-left:0">Standardization approach:</label><br>
+			<input
+				type="radio"
+				id="stdz_method_setting_radio_integrated_fit"
+				name="stdz_method_setting"
+				value="stdz_method_setting_integrated_fit"
+				form="mainform"
+				checked=true>
+			Integrated model taking unknowns into account
+			<br>
+			<input
+				type="radio"
+				id="stdz_method_setting_radio_indep_sessions"
+				name="stdz_method_setting"
+				value="stdz_method_setting_indep_sessions"
+				form="mainform">
+			Independent models for each session only taking anchors into account
+
+			<h2>Raw Data Input</h2>
+
+			<div class="settings_readme">
+				<p>Each line corresponds to a single analysis. Fields are tab-delimited.
+				The first line must correspond to field names.
+				The required fields are: a unique identifier (<span class="field">UID</span>),
+				an identifier for the analytical session (<span class="field">Session</span>),
+				a sample identifier (<span class="field">Sample</span>),
+				and the working-gas delta values <span class="field">d45</span>,  <span class="field">d46</span>,  <span class="field">d47</span>.
+			
+				<p>Independently known oxygen-17 anomalies may be provided as <span class="field">D17O</span>
+				(in ‰ relative to VSMOW, λ&nbsp;=&nbsp;0.528), and are assumed to be zero otherwise.
+				Working-gas deltas <span class="field">d48</span> and <span class="field">d49</span> may also be provided, and are also treated as zero otherwise.
+			</div>
+
+			<textarea name="rawdata_input_str" id="rawdata_input_textarea" form="mainform" cols="128" rows="21">{{payload['rawdata_input_str']}}</textarea>
+<!-- 			<textarea name="rawdata_input_str_fw" id="rawdata_input_textarea_fw" form="mainform" cols="128" rows="24" style="display:none">{{payload['rawdata_input_str_fw']}}</textarea> -->
+
+<!-- 
+			<button onclick="rawdata_input_str_asfw()" id="rawdata_input_str_asfw" style="display:block">Display as fixed-width columns</button>
+			<button onclick="rawdata_input_str_astd()" id="rawdata_input_str_astd" style="display:none">Display as tab-delimited columns</button>
+ -->
+
+			
+		<form action="/" id="mainform" method="post">
+		<input form="mainform" type="submit" name="action" value="Process">
+		
+		{% if payload['display_results'] %}
+		<h2>Results</h2>
+
+			<span class=label>Summary:</span>
+			<br>
+			<textarea
+				name="summary_str"
+				class="invisible"
+				id="summary_textarea"
+				form="mainform"
+				cols="{{payload['summary_cols']}}"
+				rows="{{payload['summary_rows']}}">{{payload['summary']}}</textarea>
+			<br>
+
+			<span class=label>Table of sessions:</span>
+			<br>
+			<textarea
+				name="table_of_sessions_str"
+				class="invisible"
+				id="table_of_sessions_textarea"
+				form="mainform"
+				cols="{{payload['table_of_sessions_cols']}}"
+				rows="{{payload['table_of_sessions_rows']}}">{{payload['table_of_sessions']}}</textarea>
+			<br>
+
+			{% for img in payload['plots'] %}
+				<img src="{{ img }}"/>
+			{% endfor %}
+
+			<br>
+			<br>
+			<br>
+			<span class=label>Table of samples:</span>
+			<br>
+			<textarea
+				name="table_of_samples_str"
+				class="invisible"
+				form="mainform"
+				cols="{{payload['table_of_samples_cols']}}"
+				rows="{{payload['table_of_samples_rows']}}">{{payload['table_of_samples']}}</textarea>
+			<br>
+			<br>
+
+			<span class=label>Table of analyses:</span>
+			<br>
+			<textarea
+				name="table_of_analyses_str"
+				class="invisible"
+				form="mainform"
+				cols="{{payload['table_of_analyses_cols']}}"
+				rows="{{payload['table_of_analyses_rows']}}">{{payload['table_of_analyses']}}</textarea>
+
+			<textarea
+				name="table_of_sessions_csv"
+				style="display:none"
+				form="mainform">{{payload['table_of_sessions_csv']}}</textarea>
+			<textarea
+				name="table_of_samples_csv"
+				style="display:none"
+				form="mainform">{{payload['table_of_samples_csv']}}</textarea>
+			<textarea
+				name="table_of_analyses_csv"
+				style="display:none"
+				form="mainform">{{payload['table_of_analyses_csv']}}</textarea>
+			<textarea
+				name="report"
+				style="display:none"
+				form="mainform">{{payload['report']}}</textarea>
+			<textarea
+				name="csv_of_sessions"
+				style="display:none"
+				form="mainform">{{payload['csv_of_sessions']}}</textarea>
+
+			<p>
+			<input form="mainform" type="submit" name="action" value="Download zipped results">
+
+		{% endif %}
+
+		</form>
+		
+		<h3>About</h3>
+		
+		<p><a href="https://github.com/mdaeron/clumpycrunch">ClumpyCrunch</a> is built on <a href="https://flask.palletsprojects.com">Flask</a> and <a href="https://github.com/mdaeron/D47crunch">D47crunch</a> (v{{vD47crunch}}),
+		based on the standardization methods described by <a href="https://doi.org/xxx">Daëron et al. (in prep.)</a>.
+		<br>After you close your browser window, ClumpyCrunch forgets all about your analytical data.
+		<br>All questions and suggestions are welcome and should be directed at <a href="mailto:daeron@lsce.ipsl.fr?subject=[ClumpyCrunch]">Mathieu Daëron</a>.
+		
+	</body>
+</html>
+
+<script>
+	function wg_setting_show_fromsample() {
+		var x = document.getElementById("wg_setting_radio_fromsample");
+		var a = document.getElementById("wg_setting_fromsample_group");
+		var b = document.getElementById("wg_setting_explicit_group");
+		if (x.checked == true) {
+			a.style.display = "block";
+			b.style.display = "none";
+		} else {
+			a.style.display = "none";
+			b.style.display = "block";
+		}	
+	}
+
+	function wg_setting_show_explicit() {
+		var x = document.getElementById("wg_setting_radio_explicit");
+		var a = document.getElementById("wg_setting_fromsample_group");
+		var b = document.getElementById("wg_setting_explicit_group");
+		if (x.checked == true) {
+			a.style.display = "none";
+			b.style.display = "block";
+		} else {
+			a.style.display = "block";
+			b.style.display = "none";
+		}	
+	}
+
+	function rawdata_input_str_asfw() {
+		var a = document.getElementById("rawdata_input_textarea");
+		a.style.display = "none";
+		var b = document.getElementById("rawdata_input_textarea_fw");
+		b.style.display = "block";
+		var c = document.getElementById("rawdata_input_str_asfw");
+		c.style.display = "none";
+		var d = document.getElementById("rawdata_input_str_astd");
+		d.style.display = "block";
+	}
+
+	function rawdata_input_str_astd() {
+		var a = document.getElementById("rawdata_input_textarea");
+		a.style.display = "block";
+		var b = document.getElementById("rawdata_input_textarea_fw");
+		b.style.display = "none";
+		var c = document.getElementById("rawdata_input_str_asfw");
+		c.style.display = "block";
+		var d = document.getElementById("rawdata_input_str_astd");
+		d.style.display = "none";
+	}
+</script>
