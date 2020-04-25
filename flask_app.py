@@ -105,6 +105,9 @@ def start():
 def proceed():
 	data = D47data()
 
+	anchors = [l.split('\t') for l in request.form['rf_input_str'].splitlines() if '\t' in l]
+	data.Nominal_D47 = {l[1]: float(l[0]) for l in anchors}
+
 	data.input(request.form['rawdata_input_str'], '\t')
 
 	if request.form['wg_setting'] == 'wg_setting_fromsample':
@@ -120,6 +123,7 @@ def proceed():
 		'stdz_method_setting_integrated_fit': 'integrated_fit',
 		'stdz_method_setting_indep_sessions': 'independent_sessions',
 		}[request.form['stdz_method_setting']]
+
 
 	data.normalize(
 		consolidate_tables = False,
