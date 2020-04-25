@@ -1,2 +1,3 @@
-# clumpycrunch
-Web application for standardizing Δ47 measurements using the D47crunch library
+# ClumpyCrunch
+
+Web application for standardizing Δ<sub>47</sub> measurements using the `D47crunch` library
