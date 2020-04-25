@@ -1175,6 +1175,7 @@ class D47data(list):
 				self.samples[sample]['D47'] = self.Nominal_D47[sample]
 				self.samples[sample]['SE_D47'] = 0.
 			for sample in self.unknowns:
+				self.unknowns[sample]['session_D47'] = {}
 				session_avg = []
 				for session in self.sessions:
 					sdata = [r for r in self.sessions[session]['data'] if r['Sample'] == sample]
@@ -1183,8 +1184,14 @@ class D47data(list):
 						avg_d47 = np.mean([r['d47'] for r in sdata])
 						sigma_s = self.normalization_error(session, avg_d47, avg_D47)
 						sigma_u = self.repro['sigma_47'] / len(sdata)**.5
-						session_avg.append((avg_D47, (sigma_u**2 + sigma_s**2)**.5))
+						session_avg.append([avg_D47, (sigma_u**2 + sigma_s**2)**.5])
+						self.unknowns[sample]['session_D47'][session] = session_avg[-1]
 				self.samples[sample]['D47'], self.samples[sample]['SE_D47'] = w_avg(*zip(*session_avg))
+				weights = {s: self.unknowns[sample]['session_D47'][s][1]**-2 for s in self.unknowns[sample]['session_D47']}
+				wsum = sum([weights[s] for s in weights])
+				for s in weights:
+					self.unknowns[sample]['session_D47'][s] += [self.unknowns[sample]['session_D47'][s][1]**-2 / wsum]
+# 				print(sample, self.unknowns[sample]['session_D47'])
 
 
 	def consolidate_sessions(self):
@@ -1380,8 +1387,6 @@ class D47data(list):
 			if sample1 == sample2:
 				return self.samples[sample1]['SE_D47']**2
 			else:
-				return 0.
-				# TODO: correct the code below to account for weights
 				c = 0
 				for session in self.sessions:
 					sdata1 = [r for r in self.sessions[session]['data'] if r['Sample'] == sample1]
@@ -1393,5 +1398,11 @@ class D47data(list):
 						avg_d47_1 = np.mean([r['d47'] for r in sdata1])
 						avg_D47_2 = np.mean([r['D47'] for r in sdata2])
 						avg_d47_2 = np.mean([r['d47'] for r in sdata2])
-						c += np.array([[avg_D47_1, avg_d47_1, 1]]) @ CM @ np.array([[avg_D47_2, avg_d47_2, 1]]).T / a**2
+						c += (
+							self.unknowns[sample1]['session_D47'][session][2]
+							* self.unknowns[sample2]['session_D47'][session][2]
+							* np.array([[avg_D47_1, avg_d47_1, 1]])
+							@ CM
+							@ np.array([[avg_D47_2, avg_d47_2, 1]]).T
+							) / a**2
 				return float(c)
