@@ -4,11 +4,11 @@
 		<meta charset="UTF-8">
 		<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 		<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-		<title>ClumpyCrunch 2.0</title>
+		<title>ClumpyCrunch</title>
 	</head>
 
 	<body>
-		<h1>ClumpyCrunch<div style='float:right;font-weight:normal'>v2.0</div></h1>
+		<h1>ClumpyCrunch<div style='float:right;font-weight:normal'>v2.0rc</div></h1>
 
 			<h2>Oxygen-17 Correction Settings</h2>
 		
@@ -65,7 +65,7 @@
 				name="wg_setting"
 				value="wg_setting_fromsample"
 				form="mainform"
-				checked=true
+				{{'checked=true' if payload['wg_setting'] == 'wg_setting_fromsample'}}
 				onchange="wg_setting_show_fromsample()">
 			Based on analyses of a carbonate sample
 			<br>
@@ -75,10 +75,11 @@
 				name="wg_setting"
 				value="wg_setting_explicit"
 				form="mainform"
+				{{'checked=true' if payload['wg_setting'] == 'wg_setting_explicit'}}
 				onchange="wg_setting_show_explicit()">
 			Explicitly defined in the raw data
 
-			<div id="wg_setting_fromsample_group">
+			<div id="wg_setting_fromsample_group" style="{{'display:none' if payload['wg_setting'] != 'wg_setting_fromsample'}}">
 				<div class="settings_readme">
 					Bulk WG composition is computed from analyses of the following sample:
 				</div>
@@ -126,21 +127,10 @@
 					value="{{payload['wg_setting_fromsample_acidfrac']}}"
 					></input>
 				<label for="wg_setting_fromsample_acidfrac">(<sup>18</sup>O/<sup>16</sup>O) fractionation factor of acid reaction</label>
-<!-- 
-				<select id="wg_setting_acidfrac_option" name="wg_setting_acidfrac_option" form="mainform">
-					<option value="wg_setting_acidfrac_Kim_90C">Calcite, 90 °C, Kim et al. (2007)</option>
-					<option value="wg_setting_acidfrac_Kim_70C">Calcite, 70 °C, Kim et al. (2007)</option>
-					<option value="wg_setting_acidfrac_Kim_25C">Calcite, 25 °C, Kim et al. (2007)</option>
-					<option value="wg_setting_acidfrac_DS_90C">Calcite, 90 °C, Das Sharma et al. (2002)</option>
-					<option value="wg_setting_acidfrac_DS_70C">Calcite, 70 °C, Das Sharma et al. (2002)</option>
-					<option value="wg_setting_acidfrac_DS_25C">Calcite, 25 °C, Das Sharma et al. (2002)</option>
-					<option value="wg_setting_acidfrac_explicit">Specify your own value</option>
-				</select>
- -->
 				
 			</div>
 
-			<div id="wg_setting_explicit_group" style="display:none">
+			<div id="wg_setting_explicit_group" style="{{'display:none' if payload['wg_setting'] != 'wg_setting_explicit'}}">
 				<div class="settings_readme">
 					Bulk composition of the WG must be explicitly defined in each line of the raw data, using fields <span class="field">d13Cwg_VPDB</span> and  <span class="field">d18Owg_VSMOW</span>.
 				</div>
@@ -164,7 +154,8 @@
 				name="stdz_method_setting"
 				value="stdz_method_setting_integrated_fit"
 				form="mainform"
-				checked=true>
+				{{'checked=true' if payload['stdz_method_setting'] == 'stdz_method_setting_integrated_fit'}}
+				>
 			Integrated model taking unknowns into account
 			<br>
 			<input
@@ -172,7 +163,9 @@
 				id="stdz_method_setting_radio_indep_sessions"
 				name="stdz_method_setting"
 				value="stdz_method_setting_indep_sessions"
-				form="mainform">
+				form="mainform"
+				{{'checked=true' if payload['stdz_method_setting'] == 'stdz_method_setting_indep_sessions'}}
+				>
 			Independent models for each session only taking anchors into account
 
 			<h2>Raw Data Input</h2>
@@ -205,6 +198,9 @@
 		{% if payload['display_results'] %}
 		<h2>Results</h2>
 
+			<input form="mainform" type="submit" name="action" value="Download zipped results">
+
+			<p>
 			<span class=label>Summary:</span>
 			<br>
 			<textarea
@@ -249,7 +245,7 @@
 			<br>
 			<textarea
 				name="table_of_analyses_str"
-				style="font-size: 10pt"
+				style="font-size: 9pt"
 				class="invisible"
 				form="mainform"
 				cols="{{payload['table_of_analyses_cols']}}"
@@ -275,9 +271,6 @@
 				name="csv_of_sessions"
 				style="display:none"
 				form="mainform">{{payload['csv_of_sessions']}}</textarea>
-
-			<p>
-			<input form="mainform" type="submit" name="action" value="Download zipped results">
 
 		{% endif %}
 
