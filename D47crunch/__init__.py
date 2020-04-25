@@ -1380,6 +1380,8 @@ class D47data(list):
 			if sample1 == sample2:
 				return self.samples[sample1]['SE_D47']**2
 			else:
+				return 0.
+				# TODO: correct the code below to account for weights
 				c = 0
 				for session in self.sessions:
 					sdata1 = [r for r in self.sessions[session]['data'] if r['Sample'] == sample1]
