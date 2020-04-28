@@ -1,18 +1,18 @@
 #! /usr/bin/env python3
 '''
-Carbonate clumped-isotope data processing and error propagation
+Δ<sub>47</sub> data processing and error propagation
 
-This library is designed to process and standardize carbonate clumped-isotope
-analyses, from low-level data out of a dual-inlet mass spectrometer to final,
-“absolute” Δ47 values with fully propagated analytical error estimates.
+Process and standardize carbonate and/or CO<sub>2</sub> clumped-isotope analyses,
+from low-level data out of a dual-inlet mass spectrometer to final, “absolute”
+Δ<sub>47</sub> values with fully propagated analytical error estimates.
 '''
 
-__author__ = 'Mathieu Daëron'
-__contact__ = 'daeron@lsce.ipsl.fr'
+__author__    = 'Mathieu Daëron'
+__contact__   = 'daeron@lsce.ipsl.fr'
 __copyright__ = 'Copyright (c) 2020 Mathieu Daëron'
-__license__ = 'Modified BSD License - https://opensource.org/licenses/BSD-3-Clause'
-__date__ = '2020-02-08'
-__version__ = '0.1'
+__license__   = 'Modified BSD License - https://opensource.org/licenses/BSD-3-Clause'
+__date__      = '2020-02-08'
+__version__   = '0.1'
 
 
 import os
@@ -280,7 +280,7 @@ class D47data(list):
 	
 	SAMPLE_CONSTRAINING_WG_COMPOSITION = ('ETH-3', 1.71, -1.78) # (Bernasconi et al., 2018)
 	'''
-	specifies the name, δ<sup>13</sup>C<sub>VPDB</sub> and δ<sup>18</sup>O<sub>VPDB</sub>
+	Specifies the name, δ<sup>13</sup>C<sub>VPDB</sub> and δ<sup>18</sup>O<sub>VPDB</sub>
 	of the carbonate standard used by `D47data.wg()` to compute the isotopic composition
 	of the working gas in each session.
 	
@@ -289,12 +289,12 @@ class D47data(list):
 	[Bernasconi et al. (2018)]: https://doi.org/10.1029/2017GC007385
 	'''
 	
-	ALPHA_18O_ACID_REACTION = np.exp(3.59 / (90 + 273.15) - 1.79e-3)  # (Kim et al., 2007, calcite)
+	ALPHA_18O_ACID_REACTION = round(np.exp(3.59 / (90 + 273.15) - 1.79e-3), 6)  # (Kim et al., 2007, calcite)
 	'''
-	specifies the <sup>18</sup>O/<sup>16</sup>O fractionation factor generally applicable
-	to acid reactions in the dataset. Currently only used by `self.wg()`.
+	Specifies the <sup>18</sup>O/<sup>16</sup>O fractionation factor generally applicable
+	to acid reactions in the dataset. Currently only used by `D47data.wg()`.
 	
-	By default equal to 1.00813 (calcite reacted at 90 °C, [Kim et al., 2007]).
+	By default equal to 1.008129 (calcite reacted at 90 °C, [Kim et al., 2007]).
 	
 	[Kim et al., 2007]: https://dx.doi.org/10.1016/j.chemgeo.2007.08.005
 	'''
@@ -305,8 +305,8 @@ class D47data(list):
 		'ETH-3': 0.691,
 		}	# (Bernasconi et al., 2018)
 	'''
-	Nominal Δ<sub>47</sub> values assigned to the anchor samples, used in particular by
-	`self.normalize()` to standardize unknown samples to a carbonate Δ<sub>47</sub>
+	Nominal Δ<sub>47</sub> values assigned to the anchor samples, used by
+	`D47data.normalize()` to standardize unknown samples to an absolute Δ<sub>47</sub>
 	reference frame.
 	
 	By default equal to `{'ETH-1': 0.258, 'ETH-2': 0.256, 'ETH-3': 0.691}` after
@@ -320,7 +320,7 @@ class D47data(list):
 		'''
 		_Parameters_
 		
-		+ `l`: a list of dictionaries, with each element including at least the keys
+		+ `l`: a list of dictionaries, with each dictionary including at least the keys
 		`UID`, `Session`, `Sample`, `d45`, `d46`, and `d47`.
 		+ `verbose`: if `True`, print out additional information when calling `D47data`
 		methods.
@@ -349,6 +349,7 @@ class D47data(list):
 		'''
 		Update `self.sessions`, `self.samples`, `self.anchors`, and `self.unknowns`.
 		'''
+		self.fill_in_missing_info()
 		self.refresh_sessions()
 		self.refresh_samples()
 
@@ -395,7 +396,7 @@ class D47data(list):
 		+ `d45`, `d46`, `d47`: the working-gas delta values
 
 		Independently known oxygen-17 anomalies may be provided as `D17O` (in ‰ relative to
-		VSMOW, λ = 0.528), and are otherwise assumed to be zero. Working-gas deltas `d48`
+		VSMOW, λ = `self.lambda_17`), and are otherwise assumed to be zero. Working-gas deltas `d48`
 		and `d49` may also be provided, and are also set to 0 otherwise.
 		
 		__Parameters__
@@ -408,7 +409,7 @@ class D47data(list):
 			self.input(fid.read(), sep = sep, session = session)
 
 
-	def input(self, txt, sep = ',', session = ''):
+	def input(self, txt, sep = '', session = ''):
 		'''
 		Read `txt` string in csv format to load analysis data into a `D47data` object.
 
@@ -423,15 +424,18 @@ class D47data(list):
 		+ `d45`, `d46`, `d47`: the working-gas delta values
 
 		Independently known oxygen-17 anomalies may be provided as `D17O` (in ‰ relative to
-		VSMOW, λ = 0.528), and are otherwise assumed to be zero. Working-gas deltas `d48`
+		VSMOW, λ = `self.lambda_17`), and are otherwise assumed to be zero. Working-gas deltas `d48`
 		and `d49` may also be provided, and are also set to 0 otherwise.
 		
 		__Parameters__
 		
 		+ `txt`: the csv string to read
-		+ `sep`: csv separator delimiting the fields
+		+ `sep`: csv separator delimiting the fields. By default, use `,`, `;`, or `\t`,
+		whichever appers most often in `txt`.
 		+ `session`: set `Session` field to this string for all analyses
 		'''
+		if sep == '':
+			sep = sorted(',;\t', key = lambda x: - txt.count(x))[0]
 		txt = [[x.strip() for x in l.split(sep)] for l in txt.splitlines() if l.strip()]
 		data = [{k: v if k in ['UID', 'Session', 'Sample'] else smart_type(v) for k,v in zip(txt[0], l)} for l in txt[1:]]
 
@@ -461,6 +465,8 @@ class D47data(list):
 		if a18_acid == '':
 			a18_acid = self.ALPHA_18O_ACID_REACTION
 
+		assert a18_acid, f'Acid fractionation value should differ from zero.'
+
 		R13_s = self.R13_VPDB * (1 + d13C_vpdb / 1000)
 		R17_s = self.R17_VPDB * ((1 + d18O_vpdb / 1000) * a18_acid) ** self.lambda_17
 		R18_s = self.R18_VPDB * (1 + d18O_vpdb / 1000) * a18_acid
@@ -483,6 +489,7 @@ class D47data(list):
 
 		for s in self.sessions:
 			db = [r for r in self.sessions[s]['data'] if r['Sample'] == sample]
+			assert db, f'Sample "{sample}" not found in session "{s}".'
 			d45_s = np.mean([r['d45'] for r in db])
 			d46_s = np.mean([r['d46'] for r in db])
 			R45_wg = R45_s / (1 + d45_s / 1000)
@@ -501,10 +508,14 @@ class D47data(list):
 
 	def compute_bulk_deltas(self, R45, R46, D17O = 0):
 		'''
-		Compute δ13C_VPDB and δ18O_VSMOW, by solving the generalized form of equation (17)
-		from Brand et al. (2010), assuming that d18O_VSMOW is not too big ( 0 ± 50 ‰) and
+		Compute δ<sup>13</sup>C<sub>VPDB</sub> and δ<sup>18</sup>O<sub>VSMOW</sub>,
+		by solving the generalized form of equation (17) from [Brand et al. (2010)],
+		assuming that δ<sup>18</sup>O<sub>VSMOW</sub> is not too big (0 ± 50 ‰) and
 		solving the corresponding second-order Taylor polynomial.
-		(Appendix A, Daëron et al., 2016, <https://doi.org/10.1016/j.chemgeo.2016.08.014>)
+		(Appendix A of [Daëron et al., 2016])
+		
+		[Brand et al. (2010)]: https://doi.org/10.1351/PAC-REP-09-01-05
+		[Daëron et al., 2016]: https://doi.org/10.1016/j.chemgeo.2016.08.014
 		'''
 
 		K = np.exp(D17O / 1000) * self.R17_VSMOW * self.R18_VSMOW ** -self.lambda_17
@@ -533,17 +544,26 @@ class D47data(list):
 		'''
 		Compute bulk composition and raw clumped isotope anomalies for all analyses.
 		'''
-		for i,r in enumerate(self):
-			for k in ['D17O', 'd48', 'd49']:
-				if k not in r:
-					r[k] = 0.
+		for r in self:
 			self.compute_bulk_and_clumping_deltas(r)
 		self.vprint(f"Crunched {len(self)} analyses.")
 
+	def fill_in_missing_info(self):
+		for i,r in enumerate(self):
+			if 'D17O' not in r:
+				r['D17O'] = 0.
+			if 'UID' not in r:
+				r['UID'] = f'#{i+1}'
+			if 'Session' not in r:
+				r['Session'] = 'nameless'
+			for k in ['d48', 'd49']:
+				if k not in r:
+					r[k] = np.nan
 
 	def compute_bulk_and_clumping_deltas(self, r):
 		'''
-		Compute δ13C_VPDB, δ18O_VSMOW, and raw Δ47, Δ48, Δ49 values for an analysis.
+		Compute δ<sup>13</sup>C<sub>VPDB</sub>, δ<sup>18</sup>O<sub>VSMOW</sub>, and
+		raw Δ<sub>47</sub>, Δ<sub>48</sub>, Δ<sub>49</sub> values for an analysis `r`.
 		'''
 
 		# Compute working gas R13, R18, and isobar ratios
@@ -570,9 +590,9 @@ class D47data(list):
 		# Check that R45/R45stoch and R46/R46stoch are undistinguishable from 1,
 		# and raise a warning if the corresponding anomalies exceed 0.02 ppm.
 		if (R45 / R45stoch - 1) > 5e-8:
-			self.vprint(f'This is unexpected: R45/R45stoch - 1 = {1e6 * (R45 / R45stoch - 1):%.3f} ppm')
+			self.vprint(f'This is unexpected: R45/R45stoch - 1 = {1e6 * (R45 / R45stoch - 1):.3f} ppm')
 		if (R46 / R46stoch - 1) > 5e-8:
-			self.vprint(f'This is unexpected: R46/R46stoch - 1 = {1e6 * (R46 / R46stoch - 1):%.3f} ppm')
+			self.vprint(f'This is unexpected: R46/R46stoch - 1 = {1e6 * (R46 / R46stoch - 1):.3f} ppm')
 
 		# Compute raw clumped isotope anomalies
 		r['D47raw'] = 1000 * (R47 / R47stoch - 1)
@@ -581,9 +601,9 @@ class D47data(list):
 
 	def compute_isobar_ratios(self, R13, R18, D17O=0, D47=0, D48=0, D49=0):
 		'''
-		Compute isobar ratios for a sample with isotopic ratios R13 and R18,
-		optionally accounting for non-zero values of Δ17O and clumped isotope
-		anomalies, all expressed in permil.
+		Compute isobar ratios for a sample with isotopic ratios `R13` and `R18`,
+		optionally accounting for non-zero values of Δ<sup>17</sup>O (`D17O`) and clumped isotope
+		anomalies (`D47`, `D48`, `D49`), all expressed in permil.
 		'''
 
 		# Compute R17
@@ -698,7 +718,7 @@ class D47data(list):
 
 	def assign_timestamps(self):
 		'''
-		Assign a time field `t` to each analysis.
+		Assign a time field `t` of type `float` to each analysis.
 		
 		If `TimeTag` is one of the data fields, `t` is equal within a given session
 		to `TimeTag` minus the mean value of `TimeTag` for that session.
@@ -718,7 +738,7 @@ class D47data(list):
 
 
 	def normalize(self,
-		method = 'integrated_fit',
+		method = 'pooled',
 		weighted_sessions = [],
 		consolidate = True,
 		consolidate_tables = True,
@@ -726,7 +746,7 @@ class D47data(list):
 		):
 		'''
 		Compute absolute Δ47 values for all replicate analyses and for sample averages.
-		If `method` argument is set to `'integrated_fit'`, the normalization processes all sessions
+		If `method` argument is set to `'pooled'`, the normalization processes all sessions
 		in a single step, assuming that all samples (anchors and unknowns alike) are
 		homogeneous (i.e. that their true Δ<sub>47</sub> value does not change between sessions).
 		If `method` argument is set to `'independent_sessions'`, the normalization processes each
@@ -736,11 +756,11 @@ class D47data(list):
 		self.normalization_method = method
 		self.assign_timestamps()
 
-		if method == 'integrated_fit':
+		if method == 'pooled':
 			if weighted_sessions:
 				for session_group in weighted_sessions:
 					X = D47data([r for r in self if r['Session'] in session_group], verbose = self.verbose)
-					result = X.normalize(method = 'integrated_fit', weighted_sessions = [], consolidate = False)
+					result = X.normalize(method = 'pooled', weighted_sessions = [], consolidate = False)
 					w = np.sqrt(result.redchi)
 					self.vprint(f'Session group {session_group} MRSWD = {w:.4f}')
 					for r in X:
@@ -1162,7 +1182,7 @@ class D47data(list):
 			if len(D47_pop) > 1:
 				self.samples[sample]['p_Levene'] = levene(D47_ref_pop, D47_pop, center = 'median')[1]
 
-		if self.normalization_method == 'integrated_fit':
+		if self.normalization_method == 'pooled':
 			for sample in self.anchors:
 				self.samples[sample]['D47'] = self.Nominal_D47[sample]
 				self.samples[sample]['SE_D47'] = 0.
@@ -1206,7 +1226,7 @@ class D47data(list):
 			self.sessions[session]['r_d18O_VSMOW'] = self.compute_reproducibility('d18O_VSMOW', samples = 'anchors', sessions = [session])
 			self.sessions[session]['r_D47'] = self.compute_reproducibility('D47', sessions = [session])
 
-		if self.normalization_method == 'integrated_fit':
+		if self.normalization_method == 'pooled':
 			for session in self.sessions:
 
 				self.sessions[session]['Np'] = 3
@@ -1300,7 +1320,7 @@ class D47data(list):
 
 	def compute_reproducibility(self, key, samples = 'all samples', sessions = 'all sessions'):
 		'''
-		Compute external reproducibility of `[r[key] for r in self]`.
+		Compute the reproducibility of `[r[key] for r in self]`
 		'''
 		# NB: it's debatable whether rD47 should be computed
 		# with Nf = len(self)-len(self.samples) instead of
@@ -1371,15 +1391,15 @@ class D47data(list):
 
 	def sample_D47_covar(self, sample1, sample2 = ''):
 		'''
-		Covariance between Δ47 values of samples
+		Covariance between Δ<sub>47</sub> values of samples
 		
-		Returns the covariance (or the variance, if sample_1 == sample_2)
-		between the average Δ47 values of two samples. Also returns the
-		variance if only sample_1 is specified.
+		Returns the error covariance between the average Δ<sub>47</sub> values of two
+		samples. If if only `sample_1` is specified, or if `sample_1 == sample_2`),
+		returns the Δ<sub>47</sub> variance for that sample.
 		'''
 		if sample2 == '':
 			sample2 = sample1
-		if self.normalization_method == 'integrated_fit':
+		if self.normalization_method == 'pooled':
 			i = self.normalization.var_names.index(f'D47_{pf(sample1)}')
 			j = self.normalization.var_names.index(f'D47_{pf(sample2)}')
 			return self.normalization.covar[i, j]		
@@ -1406,3 +1426,18 @@ class D47data(list):
 							@ np.array([[avg_D47_2, avg_d47_2, 1]]).T
 							) / a**2
 				return float(c)
+
+	def sample_D47_correl(self, sample1, sample2 = ''):
+		'''
+		Correlation between Δ<sub>47</sub> errors of samples
+		
+		Returns the error correlation between the average Δ47 values of two samples.
+		'''
+		if sample2 == '' or sample2 == sample1:
+			return 1.
+		return (
+			self.sample_D47_covar(sample1, sample2)
+			/ self.unknowns[sample1]['SE_D47']
+			/ self.unknowns[sample2]['SE_D47']
+			)
+
