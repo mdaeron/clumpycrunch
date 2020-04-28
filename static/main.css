@@ -92,3 +92,16 @@ textarea.invisible {
 	font-weight: bold;
 	font-size: 14pt;
 }
+
+div.error {
+/* 	color: #A00000; */
+	background-color: #FFCCCC;
+	padding: 2ex; 
+	padding-top: 0; 
+}
+
+h2.error {
+	background-color: #FFCCCC;
+	padding-left: 0;
+	margin-bottom: 0;
+}
