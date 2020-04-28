@@ -10,6 +10,13 @@
 	<body>
 		<h1>ClumpyCrunch<div style='float:right;font-weight:normal'>v2.0rc</div></h1>
 
+			{% if payload['error_msg'] %}
+			<div class="error">
+				<h2 class="error">Something went wrong...</h2>
+					{{ payload['error_msg'] }}
+			</div>
+			{% endif %}
+
 			<h2>Oxygen-17 Correction Settings</h2>
 		
 			<br>
@@ -150,13 +157,13 @@
 			<label for="stdz_method_setting" style="margin-left:0">Standardization approach:</label><br>
 			<input
 				type="radio"
-				id="stdz_method_setting_radio_integrated_fit"
+				id="stdz_method_setting_radio_pooled"
 				name="stdz_method_setting"
-				value="stdz_method_setting_integrated_fit"
+				value="stdz_method_setting_pooled"
 				form="mainform"
-				{{'checked=true' if payload['stdz_method_setting'] == 'stdz_method_setting_integrated_fit'}}
+				{{'checked=true' if payload['stdz_method_setting'] == 'stdz_method_setting_pooled'}}
 				>
-			Integrated model taking unknowns into account
+			Pooled regression model taking unknowns into account
 			<br>
 			<input
 				type="radio"
@@ -173,14 +180,16 @@
 			<div class="settings_readme">
 				<p>Each line corresponds to a single analysis. Fields are tab-delimited.
 				The first line must correspond to field names.
-				The required fields are: a unique identifier (<span class="field">UID</span>),
-				an identifier for the analytical session (<span class="field">Session</span>),
+				The required fields are:
 				a sample identifier (<span class="field">Sample</span>),
 				and the working-gas delta values <span class="field">d45</span>,  <span class="field">d46</span>,  <span class="field">d47</span>.
-			
-				<p>Independently known oxygen-17 anomalies may be provided as <span class="field">D17O</span>
-				(in ‰ relative to VSMOW, λ&nbsp;=&nbsp;0.528), and are assumed to be zero otherwise.
-				Working-gas deltas <span class="field">d48</span> and <span class="field">d49</span> may also be provided, and are also treated as zero otherwise.
+				For each analysis you may also (optionally) specify
+				a unique analysis identifier (<span class="field">UID</span>) and/or
+				an identifier for the analytical session (<span class="field">Session</span>).
+				Independently known oxygen-17 anomalies may be provided as <span class="field">D17O</span>
+				(in ‰ relative to VSMOW, with the λ value specified above), and are assumed to be zero otherwise.
+				Working-gas deltas <span class="field">d48</span> and <span class="field">d49</span> may also be
+				specified (treated as NaN otherwise).
 			</div>
 
 			<textarea name="rawdata_input_str" id="rawdata_input_textarea" form="mainform" cols="128" rows="21">{{payload['rawdata_input_str']}}</textarea>
@@ -195,7 +204,7 @@
 		<form action="/" id="mainform" method="post">
 		<input form="mainform" type="submit" name="action" value="Process">
 		
-		{% if payload['display_results'] %}
+		{% if payload['display_results'] and not payload['error_msg'] %}
 		<h2>Results</h2>
 
 			<input form="mainform" type="submit" name="action" value="Download zipped results">
