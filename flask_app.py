@@ -215,14 +215,11 @@ D36\tSession04\tETH-4\t-6.215638\t-5.221584\t-11.999819
 D37\tSession04\tETH-2\t-6.067508\t-4.893477\t-11.754488
 D38\tSession04\tIAEA-C1\t6.214580\t11.440629\t17.254051'''
 
-rf_input_str = '''0.258\tETH-1
-0.256\tETH-2
-0.691\tETH-3'''
-
 app = Flask(__name__)
 
 default_payload = {
 	'display_results': False,
+	'error_msg': '',
 	'rawdata_input_str': rawdata_input_str,
 	'o17_R13_VPDB': 0.01118,
 	'o17_R18_VSMOW': 0.0020052,
@@ -230,11 +227,11 @@ default_payload = {
 	'o17_lambda': 0.528,
 	'wg_setting': 'wg_setting_fromsample',
 	'wg_setting_fromsample_samplename': 'ETH-3',
-	'wg_setting_fromsample_d13C': '1.71',
-	'wg_setting_fromsample_d18O': '-1.78',
-	'wg_setting_fromsample_acidfrac': '1.00813',
-	'rf_input_str': rf_input_str,
-	'stdz_method_setting': 'stdz_method_setting_integrated_fit',
+	'wg_setting_fromsample_d13C': 1.71,
+	'wg_setting_fromsample_d18O': -1.78,
+	'wg_setting_fromsample_acidfrac': 1.008129,
+	'rf_input_str': '0.258\tETH-1\n0.256\tETH-2\n0.691\tETH-3',
+	'stdz_method_setting': 'stdz_method_setting_pooled',
 	}
 
 @app.route('/', methods = ['GET', 'POST'])
@@ -253,26 +250,118 @@ def start():
 	return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
 
 def proceed():
+	payload = dict(request.form)
 	data = D47data()
 
-	anchors = [l.split('\t') for l in request.form['rf_input_str'].splitlines() if '\t' in l]
+	anchors = [l.split('\t') for l in payload['rf_input_str'].splitlines() if '\t' in l]
 	data.Nominal_D47 = {l[1]: float(l[0]) for l in anchors}
 
-	data.input(request.form['rawdata_input_str'], '\t')
+	try:
+		data.R13_VPDB = float(payload['o17_R13_VPDB'])
+	except:
+		payload['error_msg'] = 'Check the value of R13_VPDB in oxygen-17 correction settings.'
+		return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+		
+	try:
+		data.R18_VSMOW = float(payload['o17_R18_VSMOW'])
+	except:
+		payload['error_msg'] = 'Check the value of R18_VSMOW in oxygen-17 correction settings.'
+		return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+		
+	try:
+		data.R17_VSMOW = float(payload['o17_R17_VSMOW'])
+	except:
+		payload['error_msg'] = 'Check the value of R17_VSMOW in oxygen-17 correction settings.'
+		return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
 
-	if request.form['wg_setting'] == 'wg_setting_fromsample':
-		data.wg(
-			sample = request.form['wg_setting_fromsample_samplename'],
-			d13C_vpdb = float(request.form['wg_setting_fromsample_d13C']),
-			d18O_vpdb = float(request.form['wg_setting_fromsample_d18O']),
-			a18_acid = float(request.form['wg_setting_fromsample_acidfrac'])
-			)
-	data.crunch()
+	try:
+		data.lambda_17 = float(payload['o17_lambda'])
+	except:
+		payload['error_msg'] = 'Check the value of λ in oxygen-17 correction settings.'
+		return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+
+	data.input(payload['rawdata_input_str'])
+# 	try:
+# 		data.input(payload['rawdata_input_str'], '\t')
+# 	except:
+# 		payload['error_msg'] = 'Raw data input failed for some reason.'
+# 		return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+
+	for r in data:
+		for k in ['UID', 'Sample', 'Session', 'd45', 'd46', 'd47']:
+			if k not in r or r[k] == '':
+				payload['error_msg'] = f'Analysis "{r["UID"]}" is missing field "{k}".'
+				return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+		for k in ['d45', 'd46', 'd47']:
+			if not isinstance(r[k], (int, float)):
+				payload['error_msg'] = f'Analysis "{r["UID"]}" should have a valid number for field "{k}".'
+				return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+
+	if payload['wg_setting'] == 'wg_setting_fromsample':
+
+		if payload['wg_setting_fromsample_samplename'] == '':
+			payload['error_msg'] = 'Empty sample name in WG settings.'
+			return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+
+		wg_setting_fromsample_samplename = payload['wg_setting_fromsample_samplename']
+
+		for s in data.sessions:
+			if wg_setting_fromsample_samplename not in [r['Sample'] for r in data.sessions[s]['data']]:
+				payload['error_msg'] = f'Sample name from WG settings ("{wg_setting_fromsample_samplename}") not found in session "{s}".'
+				return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+
+		try:
+			wg_setting_fromsample_d13C = float(payload['wg_setting_fromsample_d13C'])
+		except:
+			payload['error_msg'] = 'Check the δ13C value in WG settings.'
+			return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+
+		try:
+			wg_setting_fromsample_d18O = float(payload['wg_setting_fromsample_d18O'])
+		except:
+			payload['error_msg'] = 'Check the δ18O value in WG settings.'
+			return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+
+		try:
+			wg_setting_fromsample_acidfrac = float(payload['wg_setting_fromsample_acidfrac'])
+		except:
+			payload['error_msg'] = 'Check the acid fractionation value in WG settings.'
+			return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+
+		if wg_setting_fromsample_acidfrac == 0:
+			payload['error_msg'] = 'Acid fractionation value in WG settings should be greater than zero.'
+			return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+
+		try:
+			data.wg(
+				sample = wg_setting_fromsample_samplename,
+				d13C_vpdb = wg_setting_fromsample_d13C,
+				d18O_vpdb = wg_setting_fromsample_d18O,
+				a18_acid = wg_setting_fromsample_acidfrac
+				)
+		except:
+			payload['error_msg'] = 'WG computation failed for some reason.'
+			return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+	
+	if payload['wg_setting'] == 'wg_setting_explicit':
+		for r in data:
+			for k in ['d13Cwg_VPDB', 'd18Owg_VSMOW']:
+				if k not in r:
+					payload['error_msg'] = f'Analysis "{r["UID"]}" is missing field "{k}".'
+					return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
+					
+				
+	
+	try:
+		data.crunch()
+	except:
+		payload['error_msg'] = 'Crunching step failed for some reason.'
+		return render_template('main.html', payload = payload, vD47crunch = vD47crunch)
 
 	method = {
-		'stdz_method_setting_integrated_fit': 'integrated_fit',
+		'stdz_method_setting_pooled': 'pooled',
 		'stdz_method_setting_indep_sessions': 'independent_sessions',
-		}[request.form['stdz_method_setting']]
+		}[payload['stdz_method_setting']]
 
 
 	data.normalize(
@@ -287,7 +376,7 @@ def proceed():
 		Gu = [r for r in s['data'] if r['Sample'] in data.unknowns]
 		csv += f"\n{session},{s['a']},{s['b']},{s['c']},{s['CM'][0,0]},{s['CM'][1,1]},{s['CM'][2,2]},{s['CM'][0,1]},{s['CM'][0,2]},{s['CM'][1,2]},{';'.join([str(r['d47']) for r in Ga])},{';'.join([str(r['D47']) for r in Ga])},{';'.join([str(r['d47']) for r in Gu])},{';'.join([str(r['D47']) for r in Gu])}"
 
-	payload = dict(request.form)
+# 	payload['error_msg'] = 'Foo bar.'
 # 	return str(payload).replace(', ','\n')
 	payload['display_results'] = True
 	payload['csv_of_sessions'] = csv
