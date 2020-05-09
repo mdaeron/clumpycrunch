@@ -238,14 +238,14 @@ default_payload = {
 
 @app.route('/faq/')
 def faq():
-	with open('faq.md') as fid:
+	with open(f'{app.root_path}/faq.md') as fid:
 		md = fid.read()
 	return render_template('faq.html', md = md, vD47crunch = vD47crunch)
 	
 	
 @app.route('/readme/')
 def readme():
-	with open('newreadme.md') as fid:
+	with open(f'{app.root_path}/newreadme.md') as fid:
 		md = fid.read()
 	return render_template('readme.html', md = md, vD47crunch = vD47crunch)
 	
