@@ -4,6 +4,7 @@
 # from random import choices
 # from string import ascii_lowercase
 from flask import Flask, request, render_template, Response, send_file
+from flaskext.markdown import Markdown
 from D47crunch import D47data, pretty_table, make_csv, smart_type
 from D47crunch import __version__ as vD47crunch
 import zipfile, io, time
@@ -216,6 +217,7 @@ D37\tSession04\tETH-2\t-6.067508\t-4.893477\t-11.754488\t-3.74\t25.15
 D38\tSession04\tIAEA-C1\t6.214580\t11.440629\t17.254051\t-3.74\t25.15'''
 
 app = Flask(__name__)
+Markdown(app)
 
 default_payload = {
 	'display_results': False,
@@ -233,6 +235,20 @@ default_payload = {
 	'rf_input_str': '0.258\tETH-1\n0.256\tETH-2\n0.691\tETH-3',
 	'stdz_method_setting': 'stdz_method_setting_pooled',
 	}
+
+@app.route('/faq/')
+def faq():
+	with open('faq.md') as fid:
+		md = fid.read()
+	return render_template('faq.html', md = md, vD47crunch = vD47crunch)
+	
+	
+@app.route('/readme/')
+def readme():
+	with open('newreadme.md') as fid:
+		md = fid.read()
+	return render_template('readme.html', md = md, vD47crunch = vD47crunch)
+	
 
 @app.route('/', methods = ['GET', 'POST'])
 def main():
