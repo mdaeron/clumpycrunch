@@ -2,6 +2,7 @@ body {
 	font-family: 'Roboto', sans-serif;
 	font-size: 12pt;
 	padding: 3ex;
+	padding-top: 0;
 	line-height: 1.5;
 }
 
@@ -9,6 +10,7 @@ h1, h2, h3, h4, h5, h6 {
 	margin-top: 4ex;
 	margin-bottom: 2ex;
 	padding: 0.5ex;
+	padding-right: 1ex;
 	color: #000000;
 	font-weight: bold;
 }
@@ -33,6 +35,22 @@ label {
 	color: #999999;
 	margin-top: 1ex;
 	margin-bottom: 1ex;
+}
+
+.topmenu {
+	margin-top: 0;
+	margin-right: 1ex;
+	text-align: right;
+}
+
+.discreetlink {
+	color: black;
+	text-decoration: none;
+}
+
+.floatright {
+	float: right;
+	font-weight: normal;
 }
 
 .field {
