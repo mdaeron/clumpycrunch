@@ -1,3 +1,4 @@
+{% from 'macros.html' import about, menubar %}
 <!doctype html>
 <html>
 	<head>
@@ -8,7 +9,13 @@
 	</head>
 
 	<body>
-		<h1>ClumpyCrunch<div style='float:right;font-weight:normal'>v2.0rc</div></h1>
+		{{menubar(False)}}
+		<h1>
+			ClumpyCrunch
+			<div class="floatright">
+				v2.0β
+			</div>
+		</h1>
 
 			{% if payload['error_msg'] %}
 			<div class="error">
@@ -285,12 +292,7 @@
 
 		</form>
 		
-		<h3>About</h3>
-		
-		<p><a href="https://github.com/mdaeron/clumpycrunch">ClumpyCrunch</a> is built on <a href="https://flask.palletsprojects.com">Flask</a> and <a href="https://github.com/mdaeron/D47crunch">D47crunch</a> (v{{vD47crunch}}),
-		based on the standardization methods described by <a href="https://doi.org/xxx">Daëron et al. (in prep.)</a>.
-		<br>After you close your browser window, ClumpyCrunch forgets all about your analytical data.
-		<br>All questions and suggestions are welcome and should be directed at <a href="mailto:daeron@lsce.ipsl.fr?subject=[ClumpyCrunch]">Mathieu Daëron</a>.
+		{{about(vD47crunch)}}
 		
 	</body>
 </html>

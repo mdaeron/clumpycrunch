@@ -1,0 +1,26 @@
+{% from 'macros.html' import about, menubar %}
+<!doctype html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+		<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+		<title>ClumpyCrunch readme</title>
+	</head>
+
+	<body>
+		{{menubar(True)}}
+		<h1>
+			ClumpyCrunch
+			<div class="floatright">
+				readme
+			</div>
+		</h1>
+
+		{% filter markdown %}{{md|safe}}{% endfilter %}	
+
+		{{about(vD47crunch)}}
+	</body>
+
+</html>

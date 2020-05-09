@@ -1,0 +1,28 @@
+{% macro about(v) %}
+
+	<h3>About</h3>
+
+	<p><a href="https://github.com/mdaeron/clumpycrunch">ClumpyCrunch</a> is built on
+	<a href="https://flask.palletsprojects.com">Flask</a> and
+	<a href="https://github.com/mdaeron/D47crunch">D47crunch</a> v{{v}},
+	based on the standardization methods described by
+	<a href="https://doi.org/xxx">Daëron et al. (in prep.)</a>.
+	<br>After you close your browser window, ClumpyCrunch forgets all about your analytical data.
+	<br>All questions and suggestions are welcome and should be directed at
+	<a href="mailto:daeron@lsce.ipsl.fr?subject=[ClumpyCrunch]">Mathieu Daëron</a>.
+	<br>Frequently asked questions are <a href="/faq/">here</a>.
+
+{% endmacro %}
+
+{% macro menubar(home) %}
+
+		<div class="topmenu">
+<!-- 			readme -->
+			{% if home %}
+			<span style="padding-left:2em"><a href="/" class="discreetlink">back</a></span>
+			{% endif %}
+			<span style="padding-left:2em"><a href="/readme" class="discreetlink">readme</a></span>
+			<span style="padding-left:2em"><a href="/faq" class="discreetlink">FAQ</a></span>
+		</div>
+
+{% endmacro %}
