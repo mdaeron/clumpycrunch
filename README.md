@@ -36,9 +36,7 @@ Table cells may be separated by tabs, by commas, or by semicolons (no mixing of 
 
 ### WG settings
 
-Two options are available.
-
-By default, the bulk composition of the WG in each session is computed based on all analyses of a given carbonate standard within that session.
+Two options are available. By default, the bulk composition of the WG in each session is computed based on all analyses of a given carbonate standard within that session.
 
 Alternatively, you may specify the WG bulk composition explicitly in, by including columns `d13Cwg_VPDB` and `d18Owg_VSMOW` in the raw data table.
 
