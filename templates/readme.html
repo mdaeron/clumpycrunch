@@ -4,6 +4,8 @@
 
 	<head>
 		<meta charset="UTF-8">
+		<link rel="stylesheet" href="{{ url_for('static', filename='github-markdown.css') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='pygments-default.css') }}">
 		<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 		<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
 		<title>ClumpyCrunch readme</title>
@@ -18,7 +20,7 @@
 			</div>
 		</h1>
 
-		{% filter markdown %}{{md|safe}}{% endfilter %}	
+		<div class="markdown-body">{% filter markdown %}{{md|safe}}{% endfilter %}</div>
 
 		{{about(vD47crunch)}}
 	</body>
