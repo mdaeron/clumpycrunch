@@ -123,3 +123,45 @@ h2.error {
 	padding-left: 0;
 	margin-bottom: 0;
 }
+
+.markdown-body {
+	counter-reset: heading;
+}
+
+.markdown-body h2:before {
+	content: counter(heading)".\0000a0\0000a0";
+	counter-increment: heading;
+}
+
+.markdown-body h2 {
+	counter-reset: subheading;
+}
+
+.markdown-body h3:before {
+	content: counter(heading)"." counter(subheading)"\0000a0\0000a0";
+	counter-increment: subheading;
+}
+
+
+.markdown-body table tr {
+	font-family: 'Roboto Mono', monospace;
+	font-size: 10pt;
+}
+
+.markdown-body table th {
+  border-top: 1px solid #aaa;
+  border-bottom: 1px solid #aaa;
+  background-color: #f8f8f8;
+}
+
+.markdown-body table tr {
+  background-color: #fff;
+}
+
+.markdown-body table tr:nth-child(2n) {
+  background-color: #f8f8f8;
+}
+
+.markdown-body table tr:last-child td {
+  border-bottom: 1px solid #aaa;
+}
