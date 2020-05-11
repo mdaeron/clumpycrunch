@@ -217,7 +217,17 @@ D37\tSession04\tETH-2\t-6.067508\t-4.893477\t-11.754488\t-3.74\t25.15
 D38\tSession04\tIAEA-C1\t6.214580\t11.440629\t17.254051\t-3.74\t25.15'''
 
 app = Flask(__name__)
-Markdown(app)
+Markdown(app, extensions = [
+	'markdown.extensions.tables',
+# 	'pymdownx.magiclink',
+# 	'pymdownx.betterem',
+	'pymdownx.highlight',
+	'pymdownx.tilde',
+	'pymdownx.caret',
+# 	'pymdownx.emoji',
+# 	'pymdownx.tasklist',
+	'pymdownx.superfences'
+	])
 
 default_payload = {
 	'display_results': False,
@@ -245,9 +255,10 @@ def faq():
 	
 @app.route('/readme/')
 def readme():
-	with open(f'{app.root_path}/newreadme.md') as fid:
+	with open(f'{app.root_path}/README.md') as fid:
 		md = fid.read()
-	return render_template('readme.html', md = md, vD47crunch = vD47crunch)
+	headless_md = md[md.find('\n'):]
+	return render_template('readme.html', md = headless_md, vD47crunch = vD47crunch)
 	
 
 @app.route('/', methods = ['GET', 'POST'])
@@ -434,6 +445,15 @@ def proceed():
 
 	payload['report'] = f"Report generated on {time.asctime()}\nClumpyCrunch v{__version__} using D47crunch v{vD47crunch}"
 	payload['report'] += "\n\nOXYGEN-17 CORRECTION PARAMETERS:\n" + pretty_table([['R13_VPDB', 'R18_VSMOW', 'R17_VSMOW', 'lambda_17'], [payload['o17_R13_VPDB'], payload['o17_R18_VSMOW'], payload['o17_R17_VSMOW'], payload['o17_lambda']]], align = '<<<<')
+
+	if payload['wg_setting'] == 'wg_setting_fromsample':
+		payload['report'] += f"\n\nWG compositions constrained by sample {wg_setting_fromsample_samplename} with:"
+		payload['report'] += f"\n    δ13C_VPDB = {wg_setting_fromsample_d13C}"
+		payload['report'] += f"\n    δ18O_VPDB = {wg_setting_fromsample_d18O}"
+		payload['report'] += f"\n(18O/16O) AFF = {wg_setting_fromsample_acidfrac}\n"
+	elif payload['wg_setting'] == 'wg_setting_explicit':
+		payload['report'] += f"\n\nWG compositions specified by user.\n"
+	
 	payload['report'] += f"\n\nSUMMARY:\n{payload['summary']}"
 	payload['report'] += f"\n\nSAMPLES:\n{payload['table_of_samples']}"
 	payload['report'] += f"\n\nSESSIONS:\n{payload['table_of_sessions']}"
@@ -527,7 +547,7 @@ def zipresults():
 	mem.seek(0)
 
 	response = Response(FileWrapper(mem), mimetype="application/zip", direct_passthrough=True)
-	response.headers['Content-Disposition'] = 'attachment; filename=results.zip'
+	response.headers['Content-Disposition'] = 'attachment; filename=ClumpyCrunch.zip'
 	return response
 
 
