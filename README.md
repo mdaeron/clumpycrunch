@@ -42,4 +42,4 @@ Alternatively, you may specify the WG bulk composition explicitly in, by includi
 
 ### Standardization settings
 
-Two options are available.
+> under construction...
