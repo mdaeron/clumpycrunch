@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 '''
-Δ<sub>47</sub> data processing and error propagation
+Δ~47~ data processing and error propagation
 
 Process and standardize carbonate and/or CO<sub>2</sub> clumped-isotope analyses,
 from low-level data out of a dual-inlet mass spectrometer to final, “absolute”
