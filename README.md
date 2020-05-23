@@ -1,8 +1,9 @@
 # ClumpyCrunch
 
-A web application for processing Δ<sub>47</sub> measurements using the [D47crunch] library.
+A web application for processing Δ<sub>47</sub> measurements using the [D47crunch] library. Currently hosted at [clumpycrunch.pythonanywhere.com].
 
 [D47crunch]: https://github.com/mdaeron/D47crunch
+[clumpycrunch.pythonanywhere.com]: https://clumpycrunch.pythonanywhere.com
 
 ## Quick start
 
