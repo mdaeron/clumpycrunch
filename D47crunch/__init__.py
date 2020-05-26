@@ -1,18 +1,20 @@
 #! /usr/bin/env python3
 '''
-Δ<sub>47</sub> data processing and error propagation
+Standardization and analytical error propagation of Δ47 clumped-isotope measurements
 
 Process and standardize carbonate and/or CO<sub>2</sub> clumped-isotope analyses,
 from low-level data out of a dual-inlet mass spectrometer to final, “absolute”
 Δ<sub>47</sub> values with fully propagated analytical error estimates.
+
+.. include:: ../docs/documentation.md
 '''
 
 __author__    = 'Mathieu Daëron'
 __contact__   = 'daeron@lsce.ipsl.fr'
 __copyright__ = 'Copyright (c) 2020 Mathieu Daëron'
 __license__   = 'Modified BSD License - https://opensource.org/licenses/BSD-3-Clause'
-__date__      = '2020-05-11'
-__version__   = '0.2-beta'
+__date__      = '2020-05-16'
+__version__   = '0.5.dev1'
 
 import os
 import numpy as np
@@ -23,8 +25,9 @@ from scipy.interpolate import interp1d
 from numpy import linalg
 from lmfit import Minimizer, Parameters, report_fit
 from matplotlib import pyplot as ppl
-from matplotlib import rcParams
 from datetime import datetime as dt
+from functools import wraps
+from matplotlib import rcParams
 
 rcParams['font.family'] = 'sans-serif'
 rcParams['font.sans-serif'] = 'Helvetica'
@@ -63,9 +66,9 @@ _fCO2eqD47_Wang = interp1d(Wang_etal_CO2eqD47[:,0] - 0.15, Wang_etal_CO2eqD47[:,
 def fCO2eqD47_Wang(T):
 	'''
 	CO<sub>2</sub> equilibrium Δ<sub>47</sub> value as a function of `T` (in degrees C)
-	according to [Wang et al. (2019)] (supplementary data of [Dennis et al., 2011]).
+	according to [Wang et al. (2004)] (supplementary data of [Dennis et al., 2011]).
 
-	[Wang et al. (2019)]: https://doi.org/10.1016/j.gca.2004.05.039
+	[Wang et al. (2004)]: https://doi.org/10.1016/j.gca.2004.05.039
 	[Dennis et al., 2011]: https://doi.org/10.1016/j.gca.2011.09.025
 	'''
 	return float(_fCO2eqD47_Wang(T))
@@ -74,7 +77,7 @@ def fCO2eqD47_Wang(T):
 def correlated_sum(X,C,f = ''):
 	'''
 	Compute covariance-aware linear combinations
-	
+
 	Return the mean and SE of the sum of the elements of `X`, with optional
 	weights corresponding to the elements of `f`, accounting for `C`,
 	the covariance matrix of `X`.
@@ -87,22 +90,22 @@ def correlated_sum(X,C,f = ''):
 def make_csv(x, hsep = ',', vsep = '\n'):
 	'''
 	Formats a list of lists of strings as a CSV
-	
+
 	__Parameters__
-	
+
 	+ `x`: the list of lists of strings to format
 	+ `hsep`: the field separator (a comma, by default)
 	+ `vsep`: the line-ending convention to use (`'\\n'` by default)
-	
+
 	__Example__
-	
+
 	```python
 	x = [['a', 'b', 'c'], ['d', 'e', 'f']]
 	print(make_csv(x))
 	```
-	
+
 	output:
-	
+
 	```python
 	a,b,c
 	d,e,f
@@ -136,22 +139,22 @@ def smart_type(x):
 def pretty_table(x, header = 1, hsep = '  ', vsep = '–', align = '<'):
 	'''
 	Reads a list of lists of strings and outputs an ascii table
-	
+
 	__Parameters__
-	
+
 	+ `x`: a list of lists of strings
 	+ `header`: the number of lines to treat as header lines
 	+ `hsep`: the horizontal separator between columns
 	+ `vsep`: the character to use as vertical separator
 	+ `align`: string of left (`<`) or right (`>`) alignment characters.
-	
+
 	__Example__
-	
+
 	```python
 	x = [['A','B', 'C'], ['1', '1.9999', 'foo'], ['10', 'x', 'bar']]
 	print(pretty_table(x))
 	```
-	
+
 	output:
 
 	```python
@@ -165,7 +168,7 @@ def pretty_table(x, header = 1, hsep = '  ', vsep = '–', align = '<'):
 	'''
 	txt = []
 	widths = [np.max([len(e) for e in c]) for c in zip(*x)]
-	
+
 	if len(widths) > len(align):
 		align += '>' * (len(widths)-len(align))
 	sepline = hsep.join([vsep*w for w in widths])
@@ -182,20 +185,20 @@ def pretty_table(x, header = 1, hsep = '  ', vsep = '–', align = '<'):
 def transpose_table(x):
 	'''
 	Transpose a list if lists
-	
+
 	__Parameters__
-	
+
 	+ `x`: a list of lists
 
 	__Example__
-	
+
 	```python
 	x = [[1, 2], [3, 4]]
 	print(transpose_table(x))
 	```
-	
+
 	outputs:
-	
+
 	```python
 	[[1, 3], [2, 4]]
 	```
@@ -207,12 +210,12 @@ def transpose_table(x):
 def w_avg(X, sX) :
 	'''
 	Compute variance-weighted average
-	
+
 	Returns the value and SE of the weighted average of the elements of `X`,
 	with relative weights equal to their inverse variances (`1/sX**2`).
-	
+
 	__Parameters__
-	
+
 	+ `X`: array-like of elements to average
 	+ `sX`: array-like of the corresponding SE values
 
@@ -220,11 +223,11 @@ def w_avg(X, sX) :
 
 	If `X` and `sX` are initially arranged as a list of `(x, sx)` doublets,
 	they may be rearranged using `zip()`:
-	
+
 	```python
 	foo = [(0, 0.1), (1, 0.05), (2, 0.05)]
 	print(w_avg(*zip(*foo)))
-	
+
 	# output:
 	# (1.3333333333333333, 0.03333333333333334)
 	```
@@ -249,15 +252,15 @@ class D47data(list):
 	'''
 	Absolute (<sup>13</sup>C/<sup>12</sup>C) ratio of VPDB.
 	By default equal to 0.01118 ([Chang & Li, 1990])
-	
+
 	[Chang & Li, 1990]: http://www.cnki.com.cn/Article/CJFDTotal-JXTW199004006.htm
 	'''
-	
+
 	R18_VSMOW = 0.0020052  # (Baertschi, 1976)
 	'''
 	Absolute (<sup>18</sup>O/<sup>16</sup>C) ratio of VSMOW.
 	By default equal to 0.0020052 ([Baertschi, 1976])
-	
+
 	[Baertschi, 1976]: https://doi.org/10.1016/0012-821X(76)90115-1
 	'''
 
@@ -265,7 +268,7 @@ class D47data(list):
 	'''
 	Mass-dependent exponent for triple oxygen isotopes.
 	By default equal to 0.528 ([Barkan & Luz, 2005])
-	
+
 	[Barkan & Luz, 2005]: https://doi.org/10.1002/rcm.2250
 	'''
 
@@ -274,7 +277,7 @@ class D47data(list):
 	Absolute (<sup>17</sup>O/<sup>16</sup>C) ratio of VSMOW.
 	By default equal to 0.00038475
 	([Assonov & Brenninkmeijer, 2003], rescaled to `R13_VPDB`)
-	
+
 	[Assonov & Brenninkmeijer, 2003]: https://dx.doi.org/10.1002/rcm.1011
 	'''
 
@@ -297,33 +300,35 @@ class D47data(list):
 	sample differs significantly from that observed for a given reference
 	sample (using [Levene's test], which yields a p-value corresponding to
 	the null hypothesis that the underlying variances are equal).
-	
+
 	`LEVENE_REF_SAMPLE` (by default equal to `'ETH-3'`) specifies which
 	sample should be used as a reference for this test.
-	
+
 	[Levene's test]: https://en.wikipedia.org/wiki/Levene%27s_test
 	'''
-	
+
 	SAMPLE_CONSTRAINING_WG_COMPOSITION = ('ETH-3', 1.71, -1.78) # (Bernasconi et al., 2018)
 	'''
 	Specifies the name, δ<sup>13</sup>C<sub>VPDB</sub> and δ<sup>18</sup>O<sub>VPDB</sub>
 	of the carbonate standard used by `D47data.wg()` to compute the isotopic composition
 	of the working gas in each session.
-	
+
 	By default equal to `('ETH-3', 1.71, -1.78)` after [Bernasconi et al. (2018)].
-	
+
 	[Bernasconi et al. (2018)]: https://doi.org/10.1029/2017GC007385
 	'''
-	
+
 	ALPHA_18O_ACID_REACTION = round(np.exp(3.59 / (90 + 273.15) - 1.79e-3), 6)  # (Kim et al., 2007, calcite)
 	'''
 	Specifies the <sup>18</sup>O/<sup>16</sup>O fractionation factor generally applicable
-	to acid reactions in the dataset. Currently only used by `D47data.wg()`.
-	
+	to acid reactions in the dataset. Currently used by `D47data.wg()`,
+	`D47data.standardize_d13C`, and `D47data.standardize_d18O`.
+
 	By default equal to 1.008129 (calcite reacted at 90 °C, [Kim et al., 2007]).
-	
+
 	[Kim et al., 2007]: https://dx.doi.org/10.1016/j.chemgeo.2007.08.005
 	'''
+
 
 	Nominal_D47 = {
 		'ETH-1': 0.258,
@@ -334,18 +339,75 @@ class D47data(list):
 	Nominal Δ<sub>47</sub> values assigned to the anchor samples, used by
 	`D47data.standardize()` to standardize unknown samples to an absolute Δ<sub>47</sub>
 	reference frame.
-	
+
 	By default equal to `{'ETH-1': 0.258, 'ETH-2': 0.256, 'ETH-3': 0.691}` after
 	[Bernasconi et al. (2018)].
-	
+
 	[Bernasconi et al. (2018)]: https://doi.org/10.1029/2017GC007385
 	'''
 
+	Nominal_d13C_VPDB = {
+		'ETH-1': 2.02,
+		'ETH-2': -10.17,
+		'ETH-3': 1.71,
+		}	# (Bernasconi et al., 2018)
+	'''
+	Nominal δ<sup>13</sup>C<sub>VPDB</sub> values assigned to carbonate standards, used by
+	`D47data.standardize_d13C()`.
+
+	By default equal to `{'ETH-1': 2.02, 'ETH-2': -10.17, 'ETH-3': 1.71}` after
+	[Bernasconi et al. (2018)].
+
+	[Bernasconi et al. (2018)]: https://doi.org/10.1029/2017GC007385
+	'''
+
+	Nominal_d18O_VPDB = {
+		'ETH-1': -2.19,
+		'ETH-2': -18.69,
+		'ETH-3': -1.78,
+		}	# (Bernasconi et al., 2018)
+	'''
+	Nominal δ<sup>18</sup>O<sub>VPDB</sub> values assigned to carbonate standards, used by
+	`D47data.standardize_d18O()`.
+
+	By default equal to `{'ETH-1': -2.19, 'ETH-2': -18.69, 'ETH-3': -1.78}` after
+	[Bernasconi et al. (2018)].
+
+	[Bernasconi et al. (2018)]: https://doi.org/10.1029/2017GC007385
+	'''
+
+	d13C_STANDARDIZATION_METHOD = 'none'
+	'''
+	Method by which to standardize δ<sup>13</sup>C values:
+	
+	+ `none`: do not apply any δ<sup>13</sup>C standardization.
+	+ `'1pt'`: within each session, offset all initial δ<sup>13</sup>C values so as to
+	minimize the difference between final δ<sup>13</sup>C<sub>VPDB</sub> values and
+	`Nominal_d13C_VPDB` (averaged over all analyses for which `Nominal_d13C_VPDB` is defined).
+	+ `'2pt'`: within each session, apply a affine trasformation to all δ<sup>13</sup>C
+	values so as to minimize the difference between final δ<sup>13</sup>C<sub>VPDB</sub>
+	values and `Nominal_d13C_VPDB` (averaged over all analyses for which `Nominal_d13C_VPDB`
+	is defined).
+	'''
+
+	d18O_STANDARDIZATION_METHOD = 'none'
+	'''
+	Method by which to standardize δ<sup>18</sup>O values:
+	
+	+ `none`: do not apply any δ<sup>18</sup>O standardization.
+	+ `'1pt'`: within each session, offset all initial δ<sup>18</sup>O values so as to
+	minimize the difference between final δ<sup>18</sup>O<sub>VPDB</sub> values and
+	`Nominal_d18O_VPDB` (averaged over all analyses for which `Nominal_d18O_VPDB` is defined).
+	+ `'2pt'`: within each session, apply a affine trasformation to all δ<sup>18</sup>O
+	values so as to minimize the difference between final δ<sup>18</sup>O<sub>VPDB</sub>
+	values and `Nominal_d18O_VPDB` (averaged over all analyses for which `Nominal_d18O_VPDB`
+	is defined).
+	'''
 
 	def __init__(self, l = [], logfile = '', session = 'mySession', verbose = False):
 		'''
 		__Parameters__
-		
+
 		+ `l`: a list of dictionaries, with each dictionary including at least the keys
 		`Sample`, `d45`, `d46`, and `d47`.
 		+ `logfile`: if specified, write detailed logs to this file path when calling `D47data`
@@ -353,7 +415,7 @@ class D47data(list):
 		+ `session`: define session name for analyses without a `Session` key
 		+ `verbose`: if `True`, print out detailed logs when calling `D47data`
 		methods.
-		
+
 		Returns a `D47data` object derived from `list`.
 		'''
 		self.verbose = verbose
@@ -367,8 +429,10 @@ class D47data(list):
 
 	def make_verbal(oldfun):
 		'''
-		Decorator to change `self.prefix` and allow locally overriding `self.verbose`
+		Decorator to temporarily change `self.prefix`
+		and allow locally overriding `self.verbose`
 		'''
+		@wraps(oldfun)
 		def newfun(*args, verbose = '', **kwargs):
 			myself = args[0]
 			oldprefix = myself.prefix
@@ -391,7 +455,7 @@ class D47data(list):
 		self.log(txt)
 		if self.verbose:
 			print(f'{f"[{self.prefix}]":<16} {txt}')
-	
+
 
 	def vmsg(self, txt):
 		'''
@@ -409,14 +473,6 @@ class D47data(list):
 			with open(self.logfile, 'a') as fid:
 				for txt in txts:
 					fid.write(f'\n{dt.now().strftime("%Y-%m-%d %H:%M:%S")} {f"[{self.prefix}]":<16} {txt}')
-		
-
-	def vprint(self, txt):
-		'''
-		Print verbose message `txt` to screen if `self.verbose == True`.
-		'''
-		if self.verbose:
-			print(f'D47data.vprint()  ->  {txt}')
 
 
 	def refresh(self, session = 'mySession'):
@@ -441,6 +497,8 @@ class D47data(list):
 			self.sessions[s]['scrambling_drift'] = False
 			self.sessions[s]['slope_drift'] = False
 			self.sessions[s]['wg_drift'] = False
+			self.sessions[s]['d13C_STANDARDIZATION_METHOD'] = self.d13C_STANDARDIZATION_METHOD
+			self.sessions[s]['d18O_STANDARDIZATION_METHOD'] = self.d18O_STANDARDIZATION_METHOD
 
 
 	def refresh_samples(self):
@@ -458,12 +516,12 @@ class D47data(list):
 	def read(self, filename, sep = '', session = ''):
 		'''
 		Read file in csv format to load data into a `D47data` object.
-		
+
 		In the csv file, spaces befor and after field separators (`','` by default)
 		are optional. Each line corresponds to a single analysis.
-		
+
 		The required fields are:
-		
+
 		+ `UID`: a unique identifier
 		+ `Session`: an identifier for the analytical session
 		+ `Sample`: a sample identifier
@@ -472,9 +530,9 @@ class D47data(list):
 		Independently known oxygen-17 anomalies may be provided as `D17O` (in ‰ relative to
 		VSMOW, λ = `self.lambda_17`), and are otherwise assumed to be zero. Working-gas deltas `d48`
 		and `d49` may also be provided, and are also set to 0 otherwise.
-		
+
 		__Parameters__
-		
+
 		+ `fileneme`: the path of the file to read
 		+ `sep`: csv separator delimiting the fields
 		+ `session`: set `Session` field to this string for all analyses
@@ -489,9 +547,9 @@ class D47data(list):
 
 		In the csv string, spaces befor and after field separators (`','` by default)
 		are optional. Each line corresponds to a single analysis.
-		
+
 		The required fields are:
-		
+
 		+ `UID`: a unique identifier
 		+ `Session`: an identifier for the analytical session
 		+ `Sample`: a sample identifier
@@ -500,9 +558,9 @@ class D47data(list):
 		Independently known oxygen-17 anomalies may be provided as `D17O` (in ‰ relative to
 		VSMOW, λ = `self.lambda_17`), and are otherwise assumed to be zero. Working-gas deltas `d48`
 		and `d49` may also be provided, and are also set to 0 otherwise.
-		
+
 		__Parameters__
-		
+
 		+ `txt`: the csv string to read
 		+ `sep`: csv separator delimiting the fields. By default, use `,`, `;`, or `\t`,
 		whichever appers most often in `txt`.
@@ -522,7 +580,80 @@ class D47data(list):
 
 
 	@make_verbal
-	def wg(self, sample = '', d13C_vpdb = '', d18O_vpdb = '', a18_acid = ''):
+	def wg(self, samples = '', a18_acid = ''):
+		'''
+		Compute bulk composition of the working gas for each session
+		based on the carbonate standards defined both in `self.Nominal_d13C_VPDB`
+		and in `self.Nominal_d18O_VPDB`.
+		'''
+
+		self.msg('Computing WG composition:')
+
+		if a18_acid == '':
+			a18_acid = self.ALPHA_18O_ACID_REACTION
+		if samples == '':
+			samples = [s for s in self.Nominal_d13C_VPDB if s in self.Nominal_d18O_VPDB]
+
+		assert a18_acid, f'Acid fractionation value should differ from zero.'
+
+		samples = [s for s in samples if s in self.Nominal_d13C_VPDB and s in self.Nominal_d18O_VPDB]
+		R45R46_standards = {}
+		for sample in samples:
+			d13C_vpdb = self.Nominal_d13C_VPDB[sample]
+			d18O_vpdb = self.Nominal_d18O_VPDB[sample]
+			R13_s = self.R13_VPDB * (1 + d13C_vpdb / 1000)
+			R17_s = self.R17_VPDB * ((1 + d18O_vpdb / 1000) * a18_acid) ** self.lambda_17
+			R18_s = self.R18_VPDB * (1 + d18O_vpdb / 1000) * a18_acid
+
+			C12_s = 1 / (1 + R13_s)
+			C13_s = R13_s / (1 + R13_s)
+			C16_s = 1 / (1 + R17_s + R18_s)
+			C17_s = R17_s / (1 + R17_s + R18_s)
+			C18_s = R18_s / (1 + R17_s + R18_s)
+
+			C626_s = C12_s * C16_s ** 2
+			C627_s = 2 * C12_s * C16_s * C17_s
+			C628_s = 2 * C12_s * C16_s * C18_s
+			C636_s = C13_s * C16_s ** 2
+			C637_s = 2 * C13_s * C16_s * C17_s
+			C727_s = C12_s * C17_s ** 2
+
+			R45_s = (C627_s + C636_s) / C626_s
+			R46_s = (C628_s + C637_s + C727_s) / C626_s
+			R45R46_standards[sample] = (R45_s, R46_s)
+		
+		for s in self.sessions:
+			db = [r for r in self.sessions[s]['data'] if r['Sample'] in samples]
+			assert db, f'No sample from {samples} found in session "{s}".'
+			dbsamples = sorted({r['Sample'] for r in db})
+			if len(dbsamples) > 1:
+				X = [r['d45'] for r in db]
+				Y = [R45R46_standards[r['Sample']][0] for r in db]
+				R45_wg = np.polyfit(X, Y, 1)[1]
+
+				X = [r['d46'] for r in db]
+				Y = [R45R46_standards[r['Sample']][1] for r in db]
+				R46_wg = np.polyfit(X, Y, 1)[1]
+			elif len(dbsamples) == 1:
+				sample =  dbsamples[0]
+				d45_s = np.mean([r['d45'] for r in db])
+				d46_s = np.mean([r['d46'] for r in db])
+				R45_wg = R45R46_standards[sample][0] / (1 + d45_s / 1000)
+				R46_wg = R45R46_standards[sample][1] / (1 + d46_s / 1000)
+
+			d13Cwg_VPDB, d18Owg_VSMOW = self.compute_bulk_delta(R45_wg, R46_wg)
+
+			self.msg(f'Session {s} WG:   δ13C_VPDB = {d13Cwg_VPDB:.3f}   δ18O_VSMOW = {d18Owg_VSMOW:.3f}')
+
+			self.sessions[s]['d13Cwg_VPDB'] = d13Cwg_VPDB
+			self.sessions[s]['d18Owg_VSMOW'] = d18Owg_VSMOW
+			for r in self.sessions[s]['data']:
+				r['d13Cwg_VPDB'] = d13Cwg_VPDB
+				r['d18Owg_VSMOW'] = d18Owg_VSMOW
+		
+
+	@make_verbal
+	def wg_old(self, sample = '', d13C_vpdb = '', d18O_vpdb = '', a18_acid = ''):
 		'''
 		Compute bulk composition of the working gas for each session
 		based on the average composition, within each session,
@@ -570,7 +701,7 @@ class D47data(list):
 			R45_wg = R45_s / (1 + d45_s / 1000)
 			R46_wg = R46_s / (1 + d46_s / 1000)
 
-			d13Cwg_VPDB, d18Owg_VSMOW = self.compute_bulk_deltas(R45_wg, R46_wg)
+			d13Cwg_VPDB, d18Owg_VSMOW = self.compute_bulk_delta(R45_wg, R46_wg)
 
 			self.msg(f'Session {s} WG:   δ13C_VPDB = {d13Cwg_VPDB:.3f}   δ18O_VSMOW = {d18Owg_VSMOW:.3f}')
 
@@ -581,14 +712,14 @@ class D47data(list):
 				r['d18Owg_VSMOW'] = d18Owg_VSMOW
 
 
-	def compute_bulk_deltas(self, R45, R46, D17O = 0):
+	def compute_bulk_delta(self, R45, R46, D17O = 0):
 		'''
 		Compute δ<sup>13</sup>C<sub>VPDB</sub> and δ<sup>18</sup>O<sub>VSMOW</sub>,
 		by solving the generalized form of equation (17) from [Brand et al. (2010)],
 		assuming that δ<sup>18</sup>O<sub>VSMOW</sub> is not too big (0 ± 50 ‰) and
 		solving the corresponding second-order Taylor polynomial.
 		(Appendix A of [Daëron et al., 2016])
-		
+
 		[Brand et al. (2010)]: https://doi.org/10.1351/PAC-REP-09-01-05
 		[Daëron et al., 2016]: https://doi.org/10.1016/j.chemgeo.2016.08.014
 		'''
@@ -619,9 +750,9 @@ class D47data(list):
 		'''
 		Find all samples for which `Teq` is specified, compute equilibrium Δ<sub>47</sub>
 		value for that temperature, and add treat these samples as additional anchors.
-		
+
 		__Parameters__
-		
+
 		+ `fCo2eqD47`: Which CO<sub>2</sub> equilibrium law to use
 		(`petersen`: [Petersen et al. (2019)];
 		`wang`: [Wang et al. (2019)]).
@@ -647,7 +778,7 @@ class D47data(list):
 					foo[r['Sample']] = f(r['Teq'])
 			else:
 					assert r['Sample'] not in foo, f'`Teq` is inconsistently specified for sample `{r["Sample"]}`.'
-					
+
 		if priority == 'replace':
 			self.Nominal_D47 = {}
 		for s in foo:
@@ -662,9 +793,14 @@ class D47data(list):
 		'''
 		for r in self:
 			self.compute_bulk_and_clumping_deltas(r)
+		self.standardize_d13C()
+		self.standardize_d18O()
 		self.msg(f"Crunched {len(self)} analyses.")
 
 	def fill_in_missing_info(self, session = 'mySession'):
+		'''
+		Fill in optional fields with default values
+		'''
 		for i,r in enumerate(self):
 			if 'D17O' not in r:
 				r['D17O'] = 0.
@@ -675,6 +811,49 @@ class D47data(list):
 			for k in ['d48', 'd49']:
 				if k not in r:
 					r[k] = np.nan
+	
+
+	def standardize_d13C(self):
+		'''
+		Perform δ<sup>13</sup>C standadization within each session `s` according to
+		`self.sessions[s]['d13C_STANDARDIZATION_METHOD']`, which is defined by default
+		by `D47data.refresh_sessions()`as equal to `self.d13C_STANDARDIZATION_METHOD`, but
+		may be redefined abitrarily at a later stage.
+		'''
+		for s in self.sessions:
+			if self.sessions[s]['d13C_STANDARDIZATION_METHOD'] in ['1pt', '2pt']:
+				XY = [(r['d13C_VPDB'], self.Nominal_d13C_VPDB[r['Sample']]) for r in self.sessions[s]['data'] if r['Sample'] in self.Nominal_d13C_VPDB]
+				X,Y = zip(*XY)
+				if self.sessions[s]['d13C_STANDARDIZATION_METHOD'] == '1pt':
+					offset = np.mean(Y) - np.mean(X)
+					for r in self.sessions[s]['data']:
+						r['d13C_VPDB'] += offset				
+				elif self.sessions[s]['d13C_STANDARDIZATION_METHOD'] == '2pt':
+					a,b = np.polyfit(X,Y,1)
+					for r in self.sessions[s]['data']:
+						r['d13C_VPDB'] = a * r['d13C_VPDB'] + b
+
+	def standardize_d18O(self):
+		'''
+		Perform δ<sup>18</sup>O standadization within each session `s` according to
+		`self.ALPHA_18O_ACID_REACTION` and `self.sessions[s]['d18O_STANDARDIZATION_METHOD']`,
+		which is defined by default by `D47data.refresh_sessions()`as equal to
+		`self.d18O_STANDARDIZATION_METHOD`, but may be redefined abitrarily at a later stage.
+		'''
+		for s in self.sessions:
+			if self.sessions[s]['d18O_STANDARDIZATION_METHOD'] in ['1pt', '2pt']:
+				XY = [(r['d18O_VSMOW'], self.Nominal_d18O_VPDB[r['Sample']]) for r in self.sessions[s]['data'] if r['Sample'] in self.Nominal_d18O_VPDB]
+				X,Y = zip(*XY)
+				Y = [(1000+y) * self.R18_VPDB * self.ALPHA_18O_ACID_REACTION / self.R18_VSMOW - 1000 for y in Y]
+				if self.sessions[s]['d18O_STANDARDIZATION_METHOD'] == '1pt':
+					offset = np.mean(Y) - np.mean(X)
+					for r in self.sessions[s]['data']:
+						r['d18O_VSMOW'] += offset				
+				elif self.sessions[s]['d18O_STANDARDIZATION_METHOD'] == '2pt':
+					a,b = np.polyfit(X,Y,1)
+					for r in self.sessions[s]['data']:
+						r['d18O_VSMOW'] = a * r['d18O_VSMOW'] + b
+	
 
 	def compute_bulk_and_clumping_deltas(self, r):
 		'''
@@ -694,7 +873,7 @@ class D47data(list):
 		R48 = (1 + r['d48'] / 1000) * R48_wg
 		R49 = (1 + r['d49'] / 1000) * R49_wg
 
-		r['d13C_VPDB'], r['d18O_VSMOW'] = self.compute_bulk_deltas(R45, R46, D17O = r['D17O'])
+		r['d13C_VPDB'], r['d18O_VSMOW'] = self.compute_bulk_delta(R45, R46, D17O = r['D17O'])
 		R13 = (1 + r['d13C_VPDB'] / 1000) * self.R13_VPDB
 		R18 = (1 + r['d18O_VSMOW'] / 1000) * self.R18_VSMOW
 
@@ -766,9 +945,9 @@ class D47data(list):
 		Split unknown samples by UID (treat all analyses as different samples)
 		or by session (treat analyses of a given sample in different sessions as
 		different samples).
-		
+
 		__Parameters__
-		
+
 		+ `samples_to_split`: a list of samples to split, e.g., `['IAEA-C1', 'IAEA-C2']`
 		+ `grouping`: `by_uid` | `by_session`
 		'''
@@ -797,7 +976,7 @@ class D47data(list):
 		vars_old = self.standardization.var_names
 
 		unknowns_new = sorted({r['Sample_original'] for r in self if 'Sample_original' in r})
-		
+
 		Ns = len(vars_old) - len(unknowns_old)
 		vars_new = vars_old[:Ns] + [f'D47_{pf(u)}' for u in unknowns_new]
 		VD_new = {k: VD_old[k] for k in vars_old[:Ns]}
@@ -820,7 +999,7 @@ class D47data(list):
 		CM_new = W @ CM_old @ W.T
 		V = W @ np.array([[VD_old[k]] for k in vars_old])
 		VD_new = {k:v[0] for k,v in zip(vars_new, V)}
-		
+
 		self.standardization.covar = CM_new
 		self.standardization.params.valuesdict = lambda : VD_new
 		self.standardization.var_names = vars_new
@@ -829,7 +1008,7 @@ class D47data(list):
 			if r['Sample'] in self.unknowns:
 				r['Sample_split'] = r['Sample']
 				r['Sample'] = r['Sample_original']
-		
+
 		self.refresh_samples()
 		self.consolidate_samples()
 		self.repeatabilies()
@@ -842,7 +1021,7 @@ class D47data(list):
 	def assign_timestamps(self):
 		'''
 		Assign a time field `t` of type `float` to each analysis.
-		
+
 		If `TimeTag` is one of the data fields, `t` is equal within a given session
 		to `TimeTag` minus the mean value of `TimeTag` for that session.
 		Otherwise, `TimeTag` is by default equal to the index of each analysis
@@ -897,9 +1076,9 @@ class D47data(list):
 
 			params = Parameters()
 			for k,session in enumerate(self.sessions):
-				self.vprint(f"Session {session}: scrambling_drift is {self.sessions[session]['scrambling_drift']}.")
-				self.vprint(f"Session {session}: slope_drift is {self.sessions[session]['slope_drift']}.")
-				self.vprint(f"Session {session}: wg_drift is {self.sessions[session]['wg_drift']}.")
+				self.msg(f"Session {session}: scrambling_drift is {self.sessions[session]['scrambling_drift']}.")
+				self.msg(f"Session {session}: slope_drift is {self.sessions[session]['slope_drift']}.")
+				self.msg(f"Session {session}: wg_drift is {self.sessions[session]['wg_drift']}.")
 				s = pf(session)
 				params.add(f'a_{s}', value = 0.9)
 				params.add(f'b_{s}', value = 0.)
@@ -965,65 +1144,6 @@ class D47data(list):
 				self.consolidate(tables = consolidate_tables, plots = consolidate_plots)
 			return result
 
-# 		elif method == 'indep_sessions':
-# 			for session in self.sessions:
-# 				self.sessions[session]['Np'] = 3
-# 				self.vprint('')
-# 				self.vprint(f'Standardizing session {session}.')
-# 				sdata = self.sessions[session]['data']
-# 				A = np.array([
-# 					[self.Nominal_D47[r['Sample']], r['d47'], 1]
-# 					for r in sdata if r['Sample'] in self.anchors
-# 					])
-# 				Y = np.array([[r['D47raw']] for r in sdata if r['Sample'] in self.anchors])
-# 				self.sessions[session]['Na'] = Y.size
-# 				CM = linalg.inv(A.T @ A)
-# 				a,b,c = (CM @ A.T @ Y).T[0,:3]
-# 
-# 				self.vprint(f'a = {a:.4f}')
-# 				self.vprint(f'b = {b:.2e}')
-# 				self.vprint(f'c = {c:.4f}')
-# 				self.sessions[session]['a'] = a
-# 				self.sessions[session]['b'] = b
-# 				self.sessions[session]['c'] = c
-# 				self.sessions[session]['a2'] = 0.
-# 				self.sessions[session]['b2'] = 0.
-# 				self.sessions[session]['c2'] = 0.
-# 				self.sessions[session]['CM'] = np.zeros((6,6))
-# 				self.sessions[session]['CM'][:3,:3] = CM
-# 
-# 				for r in sdata :
-# 					r['D47'] = ( r['D47raw'] - b * r['d47'] - c ) / a
-# 			
-# 			Nss = len(self.sessions)
-# 			Na = len(self)
-# 			Ns = len(self.samples)
-# 			Nu = len(self.unknowns)
-# 			avgD47 = {
-# 				sample: np.mean([r['D47'] for r in self if r['Sample'] == sample])
-# 				for sample in self.samples
-# 				}
-# 			chi2 = np.sum([(r['D47'] - avgD47[r['Sample']])**2 for r in self])
-# 			rD47 = (chi2/(Na-Nu-3*Nss))**.5
-# 			self.repeatability['sigma_47'] = rD47
-# 
-# 			for session in self.sessions:
-# 				self.sessions[session]['CM'] *= a**2 * chi2 / (Na-Nu-3*Nss)
-# 				self.sessions[session]['SE_a'] = self.sessions[session]['CM'][0,0]**.5
-# 				self.sessions[session]['SE_b'] = self.sessions[session]['CM'][1,1]**.5
-# 				self.sessions[session]['SE_c'] = self.sessions[session]['CM'][2,2]**.5
-# 				self.sessions[session]['SE_a2'] = 0.
-# 				self.sessions[session]['SE_b2'] = 0.
-# 				self.sessions[session]['SE_c2'] = 0.
-# 			
-# # 			self.Nf = np.sum([self.sessions[s]['Na'] - self.sessions[s]['Np'] for s in self.sessions])
-# 			self.Nf = len(self) - len(self.unknowns) - np.sum([self.sessions[s]['Np'] for s in self.sessions])
-# 			self.t95 = tstudent.ppf(1 - 0.05/2, self.Nf)
-# 
-# 			if consolidate:
-# 				self.consolidate(tables = consolidate_tables, plots = consolidate_plots)
-
-
 
 		elif method == 'indep_sessions':
 
@@ -1043,10 +1163,10 @@ class D47data(list):
 			for session in self.sessions:
 				s = self.sessions[session]
 				p_names = ['a', 'b', 'c', 'a2', 'b2', 'c2']
-				p_active = [True, True, True, s['scrambling_drift'], s['slope_drift'], s['wg_drift']]				
-				s['Np'] = sum(p_active)				
+				p_active = [True, True, True, s['scrambling_drift'], s['slope_drift'], s['wg_drift']]
+				s['Np'] = sum(p_active)
 				sdata = s['data']
-				
+
 				A = np.array([
 					[
 						self.Nominal_D47[r['Sample']] / r['wD47raw'],
@@ -1066,11 +1186,11 @@ class D47data(list):
 				for n,a in zip(p_names, p_active):
 					if a:
 						s[n] = bf[k]
-# 						self.vprint(f'{n} = {bf[k]}')
+# 						self.msg(f'{n} = {bf[k]}')
 						k += 1
 					else:
 						s[n] = 0.
-# 						self.vprint(f'{n} = 0.0')
+# 						self.msg(f'{n} = 0.0')
 
 				for r in sdata :
 					a, b, c, a2, b2, c2 = s['a'], s['b'], s['c'], s['a2'], s['b2'], s['c2']
@@ -1107,7 +1227,7 @@ class D47data(list):
 			else:
 				self.Nf = 0
 				for sg in weighted_sessions:
-					self.Nf += self.rmswd(sessions = sg)['Nf']					
+					self.Nf += self.rmswd(sessions = sg)['Nf']
 
 			self.t95 = tstudent.ppf(1 - 0.05/2, self.Nf)
 
@@ -1118,7 +1238,7 @@ class D47data(list):
 			chi2 = np.sum([(r['D47'] - avgD47[r['Sample']])**2 for r in self])
 			rD47 = (chi2/self.Nf)**.5
 			self.repeatability['sigma_47'] = rD47
-						
+
 			if consolidate:
 				self.consolidate(tables = consolidate_tables, plots = consolidate_plots)
 
@@ -1159,16 +1279,20 @@ class D47data(list):
 
 
 	@make_verbal
-	def table_of_sessions(self, dir = 'results', filename = 'sessions.csv', save_to_file = True, print_out = True):
+	def table_of_sessions(self,
+		dir = 'results',
+		filename = 'sessions.csv',
+		save_to_file = True,
+		print_out = True):
 		'''
 		Print out an/or save to disk a table of sessions.
-		
+
 		__Parameters__
-		
+
 		+ `dir`: the directory in which to save the table
 		+ `filename`: the name to the csv file to write to
 		+ `save_to_file`: whether to save the table to disk
-		+ `print_out`: whether to print out the table		
+		+ `print_out`: whether to print out the table
 		'''
 
 		out = []
@@ -1183,8 +1307,8 @@ class D47data(list):
 		out += [['Student\'s 95% t-factor', f"{self.t95:.2f}"]]
 		out += [['Standardization method', self.standardization_method]]
 		out1 = out
-		self.msg('\n' + pretty_table(out1, header = 0)) 
-		
+		self.msg('\n' + pretty_table(out1, header = 0))
+
 		include_a2 = any([self.sessions[session]['scrambling_drift'] for session in self.sessions])
 		include_b2 = any([self.sessions[session]['slope_drift'] for session in self.sessions])
 		include_c2 = any([self.sessions[session]['wg_drift'] for session in self.sessions])
@@ -1234,19 +1358,19 @@ class D47data(list):
 			self.msg('\n' + pretty_table(out))
 		return out1, out
 
-	
+
 	def table_of_analyses(self, dir = 'results', filename = 'analyses.csv', save_to_file = True, print_out = True):
 		'''
 		Print out an/or save to disk a table of analyses.
-		
+
 		__Parameters__
-		
+
 		+ `dir`: the directory in which to save the table
 		+ `filename`: the name to the csv file to write to
 		+ `save_to_file`: whether to save the table to disk
-		+ `print_out`: whether to print out the table		
+		+ `print_out`: whether to print out the table
 		'''
-		
+
 		out = [['UID','Session','Sample']]
 		extra_fields = [f for f in [('SampleMass','.2f'),('ColdFingerPressure','.1f'),('AcidReactionYield','.3f')] if f[0] in {k for r in self for k in r}]
 		for f in extra_fields:
@@ -1285,13 +1409,13 @@ class D47data(list):
 	def table_of_samples(self, dir = 'results', filename = 'samples.csv', save_to_file = True, print_out = True):
 		'''
 		Print out an/or save to disk a table of samples.
-		
+
 		__Parameters__
-		
+
 		+ `dir`: the directory in which to save the table
 		+ `filename`: the name to the csv file to write to
 		+ `save_to_file`: whether to save the table to disk
-		+ `print_out`: whether to print out the table		
+		+ `print_out`: whether to print out the table
 		'''
 
 		out = [['Sample','N','d13C_VPDB','d18O_VSMOW','D47','SE','95% CL','SD','p_Levene']]
@@ -1328,9 +1452,9 @@ class D47data(list):
 	def plot_sessions(self, dir = 'plots', figsize = (8,8)):
 		'''
 		Generate session plots and save them to disk.
-		
+
 		__Parameters__
-		
+
 		+ `dir`: the directory in which to save the plots
 		+ `figsize`: the width and height (in inches) of each plot
 		'''
@@ -1360,19 +1484,19 @@ class D47data(list):
 					X = [r['d47'] for r in db]
 					Y = [r['D47'] for r in db]
 					ppl.plot(X, Y, **repl_kw)
-				
+
 					avg_kw['color'] = anchor_color
 					X = [min(X)-.5, max(X)+.5]
 					Y = [self.samples[sample]['D47']] * 2
 					ppl.plot(X, Y, **avg_kw)
-					
+
 					outliers = [r for r in db if abs(r['D47'] - self.Nominal_D47[r['Sample']])>.1]
 					for r in outliers:
 						print(r['UID'], r['Sample'], r['D47'])
 					X = [r['d47'] for r in outliers]
 					Y = [r['D47'] for r in outliers]
 					ppl.plot(X, Y, 'o', mfc = 'None', mec = (1,0,1), mew = 2)
-				
+
 			for sample in self.unknowns:
 
 				db = [r for r in self.samples[sample]['data'] if r['Session'] == session]
@@ -1416,7 +1540,7 @@ class D47data(list):
 # 	def sample_D47_covar(self, sample_1, sample_2 = ''):
 # 		'''
 # 		Covariance between Δ47 values of samples
-# 		
+#
 # 		Returns the covariance (or the variance, if sample_1 == sample_2)
 # 		between the average Δ47 values of two samples. Also returns the
 # 		variance if only sample_1 is specified.
@@ -1427,13 +1551,13 @@ class D47data(list):
 # 		else:
 # 			j = self.standardization.var_names.index(f'D47_{pf(sample_2)}')
 # 			return self.standardization.covar[i,j]
-# 			
+#
 
 	@make_verbal
 	def consolidate_samples(self):
 		'''
 		Compile various statistics for each sample.
-		
+
 		For each anchor sample:
 
 		+ `D47`: the nominal Δ<sub>47</sub> value for this anchor, specified by `self.Nominal_D47`
@@ -1443,9 +1567,9 @@ class D47data(list):
 
 		+ `D47`: the standardized Δ<sub>47</sub> value for this unknown
 		+ `SE_D47`: the standard error of Δ<sub>47</sub> for this unknown
-		
+
 		For each anchor and unknown:
-		
+
 		+ `N`: the total number of analyses of this sample
 		+ `SD_D47`: the “sample” (in the statistical sense) standard deviation for this sample
 		+ `d13C_VPDB`: the average δ<sup>13</sup>C<sub>VPDB</sub> value for this sample
@@ -1506,7 +1630,7 @@ class D47data(list):
 	def consolidate_sessions(self):
 		'''
 		Compile various statistics for each session.
-		
+
 		+ `Na`: Number of anchor analyses in the session
 		+ `Nu`: Number of unknown analyses in the session
 		+ `r_d13C_VPDB`: δ<sup>13</sup>C<sub>VPDB</sub> repeatability of analyses within the session
@@ -1527,7 +1651,7 @@ class D47data(list):
 		+ `Np`: Number of standardization parameters to fit
 		+ `CM`: model covariance matrix for (`a`, `b`, `c`, `a2`, `b2`, `c2`)
 		+ `d13Cwg_VPDB`: δ<sup>13</sup>C<sub>VPDB</sub> of WG
-		+ `d18Owg_VSMOW`: δ<sup>18</sup>O<sub>VSMOW</sub> of WG		
+		+ `d18Owg_VSMOW`: δ<sup>18</sup>O<sub>VSMOW</sub> of WG
 		'''
 		for session in self.sessions:
 			if 'd13Cwg_VPDB' not in self.sessions[session]:
@@ -1624,7 +1748,7 @@ class D47data(list):
 					CM[[0,1,2,5],5] = self.standardization.covar[[i,j,k,k2],k2]
 				except ValueError:
 					pass
-				
+
 				self.sessions[session]['CM'] = CM
 
 		elif self.standardization_method == 'indep_sessions':
@@ -1657,6 +1781,7 @@ class D47data(list):
 			)**.5
 
 
+	@make_verbal
 	def consolidate(self, tables = True, plots = True):
 		'''
 		Collect information about samples, sessions and repeatabilities.
@@ -1669,7 +1794,7 @@ class D47data(list):
 			self.table_of_sessions()
 			self.table_of_analyses()
 			self.table_of_samples()
-		
+
 		if plots:
 			self.plot_sessions()
 
@@ -1740,11 +1865,11 @@ class D47data(list):
 	def sample_average(self, samples, weights = 'equal', normalize = True):
 		'''
 		Weighted average Δ<sub>47</sub> value of a group of samples, accounting for covariance.
-		
+
 		Returns the weighed average Δ47 value and associated SE
 		of a group of samples. Weights are equal by default. If `normalize` is
 		true, `weights` will be rescaled so that their sum equals 1.
-		
+
 		__Examples__
 
 		```python
@@ -1781,7 +1906,7 @@ class D47data(list):
 	def sample_D47_covar(self, sample1, sample2 = ''):
 		'''
 		Covariance between Δ<sub>47</sub> values of samples
-		
+
 		Returns the error covariance between the average Δ<sub>47</sub> values of two
 		samples. If if only `sample_1` is specified, or if `sample_1 == sample_2`),
 		returns the Δ<sub>47</sub> variance for that sample.
@@ -1791,7 +1916,7 @@ class D47data(list):
 		if self.standardization_method == 'pooled':
 			i = self.standardization.var_names.index(f'D47_{pf(sample1)}')
 			j = self.standardization.var_names.index(f'D47_{pf(sample2)}')
-			return self.standardization.covar[i, j]		
+			return self.standardization.covar[i, j]
 		elif self.standardization_method == 'indep_sessions':
 			if sample1 == sample2:
 				return self.samples[sample1]['SE_D47']**2
@@ -1820,7 +1945,7 @@ class D47data(list):
 	def sample_D47_correl(self, sample1, sample2 = ''):
 		'''
 		Correlation between Δ<sub>47</sub> errors of samples
-		
+
 		Returns the error correlation between the average Δ47 values of two samples.
 		'''
 		if sample2 == '' or sample2 == sample1:

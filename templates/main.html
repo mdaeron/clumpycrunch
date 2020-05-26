@@ -167,15 +167,13 @@
 
 
 			<h2>Working Gas Composition Settings</h2>
-<!-- 			<label for="wg_setting" style="margin-left:0">Working gas composition is:</label><br> -->
 			<input
 				type="radio"
-				id="wg_setting_radio_fromsample"
+				id="wg_setting_radio_fromsamples"
 				name="wg_setting"
-				value="wg_setting_fromsample"
+				value="wg_setting_fromsamples"
 				form="mainform"
-				{{'checked=true' if payload['wg_setting'] == 'wg_setting_fromsample'}}>
-<!-- 				onchange="wg_setting_show_fromsample()" -->
+				{{'checked=true' if payload['wg_setting'] == 'wg_setting_fromsamples'}}>
 			Based on carbonate standards analyzed in each session
 			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
 				Requires that each session includes one or more samples with
@@ -193,7 +191,6 @@
 				value="wg_setting_explicit"
 				form="mainform"
 				{{'checked=true' if payload['wg_setting'] == 'wg_setting_explicit'}}>
-<!-- 				onchange="wg_setting_show_explicit()"> -->
 			Explicitly defined in the raw data
 			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
 				Bulk composition of the WG must be explicitly defined in each line of the raw data,
@@ -202,75 +199,17 @@
 				<span class="field">d18Owg_VSMOW</span>.
 			</div>
 
-<!-- 
-			<div id="wg_setting_fromsample_group" style="{{'display:none' if payload['wg_setting'] != 'wg_setting_fromsample'}}">
-				<div class="settings_readme">
-					Bulk WG composition is computed from analyses of the following sample:
-				</div>
-				
-				<br>
-				<input
-					type="text"
-					name="wg_setting_fromsample_samplename"
-					id="wg_setting_fromsample_samplename"
-					form="mainform"
-					size="12"
-					value="{{payload['wg_setting_fromsample_samplename']}}"
-					></input>
-				<label for="wg_setting_fromsample_samplename">Sample name</label>
-				
-				<br>
-				<input
-					type="text"
-					name="wg_setting_fromsample_d13C"
-					id="wg_setting_fromsample_d13C"
-					form="mainform"
-					size="12"
-					value="{{payload['wg_setting_fromsample_d13C']}}"
-					></input>
-				<label for="wg_setting_fromsample_d13C">δ<sup>13</sup>C<sub>VPDB</sub></label>
-				
-				<br>
-				<input
-					type="text"
-					name="wg_setting_fromsample_d18O"
-					id="wg_setting_fromsample_d18O"
-					form="mainform"
-					size="12"
-					value="{{payload['wg_setting_fromsample_d18O']}}"
-					></input>
-				<label for="wg_setting_fromsample_d18O">δ<sup>18</sup>O<sub>VPDB</sub></label>
-
-				<br>
-				<input
-					type="text"
-					name="wg_setting_fromsample_acidfrac"
-					id="wg_setting_fromsample_acidfrac"
-					form="mainform"
-					size="12"
-					value="{{payload['wg_setting_fromsample_acidfrac']}}"
-					></input>
-				<label for="wg_setting_fromsample_acidfrac">(<sup>18</sup>O/<sup>16</sup>O) fractionation factor of acid reaction</label>
-				
-			</div>
-
-			<div id="wg_setting_explicit_group" style="{{'display:none' if payload['wg_setting'] != 'wg_setting_explicit'}}">
-				<div class="settings_readme">
-					Bulk composition of the WG must be explicitly defined in each line of the raw data, using fields <span class="field">d13Cwg_VPDB</span> and  <span class="field">d18Owg_VSMOW</span>.
-				</div>
-			</div>
- -->
 			<h2>Acid Fractionation Settings</h2>
 
 			<input
 				type="text"
-				name="wg_setting_fromsample_acidfrac"
-				id="wg_setting_fromsample_acidfrac"
+				name="acidfrac_setting"
+				id="acidfrac_setting"
 				form="mainform"
 				size="12"
-				value="{{payload['wg_setting_fromsample_acidfrac']}}"
+				value="{{payload['acidfrac_setting']}}"
 				></input>
-			<label for="wg_setting_fromsample_acidfrac">(<sup>18</sup>O/<sup>16</sup>O) fractionation factor of acid reaction</label>
+			<label for="acidfrac_setting">(<sup>18</sup>O/<sup>16</sup>O) fractionation factor of acid reaction</label>
 			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
 				Only used for single-point or two-point δ<sup>18</sup>O standardization
 				<br>
@@ -282,12 +221,12 @@
 			<div class="settings_readme">
 			In the text box below, specify the “true” Δ<sub>47</sub> values and the names of anchors, separated by a tab (one line per anchor).
 			</div>
-			<label for="rf_input_str" style="margin-left:0">Δ<sub>47</sub> Reference Frame:</label>
+			<label for="rf_input_str" style="margin-left:0">Absolute Δ<sub>47</sub> Reference Frame:</label>
 			<br>
 			<textarea name="rf_input_str" id="rf_input_textarea" form="mainform" cols="24" rows="6">{{payload['rf_input_str']}}</textarea>
 			
 			<br><br>
-			<label for="stdz_method_setting" style="margin-left:0">Standardization approach:</label><br>
+			<label for="stdz_method_setting" style="margin-left:0">Standardization method:</label><br>
 			<input
 				type="radio"
 				id="stdz_method_setting_radio_pooled"
@@ -325,7 +264,7 @@
 				specified (treated as NaN otherwise).
 			</div>
 
-			<textarea name="rawdata_input_str" id="rawdata_input_textarea" form="mainform" cols="128" rows="21">{{payload['rawdata_input_str']}}</textarea>
+			<textarea name="rawdata_input_str" id="rawdata_input_textarea" form="mainform" cols="100" rows="21">{{payload['rawdata_input_str']}}</textarea>
 <!-- 			<textarea name="rawdata_input_str_fw" id="rawdata_input_textarea_fw" form="mainform" cols="128" rows="24" style="display:none">{{payload['rawdata_input_str_fw']}}</textarea> -->
 
 <!-- 
@@ -422,31 +361,3 @@
 		
 	</body>
 </html>
-
-<script>
-	function wg_setting_show_fromsample() {
-		var x = document.getElementById("wg_setting_radio_fromsample");
-		var a = document.getElementById("wg_setting_fromsample_group");
-		var b = document.getElementById("wg_setting_explicit_group");
-		if (x.checked == true) {
-			a.style.display = "block";
-			b.style.display = "none";
-		} else {
-			a.style.display = "none";
-			b.style.display = "block";
-		}	
-	}
-
-	function wg_setting_show_explicit() {
-		var x = document.getElementById("wg_setting_radio_explicit");
-		var a = document.getElementById("wg_setting_fromsample_group");
-		var b = document.getElementById("wg_setting_explicit_group");
-		if (x.checked == true) {
-			a.style.display = "none";
-			b.style.display = "block";
-		} else {
-			a.style.display = "block";
-			b.style.display = "none";
-		}	
-	}
-</script>
