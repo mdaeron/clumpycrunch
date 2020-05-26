@@ -70,29 +70,139 @@
 				></input>
 			<label for="o17_R13_VPDB">Triple oxygen isotope exponent (λ)</label>
 
-			<h2>WG Settings</h2>
+<!-- 
+			<h2>WG Composition and δ<sup>13</sup>C,  δ<sup>18</sup>O Standardization Settings</h2>
+ -->
+			<h2>Carbon-13 Standardization Settings</h2>
 
-			<label for="wg_setting" style="margin-left:0">Working gas composition is:</label><br>
+			<input
+				type="radio"
+				id="d13C_stdz_setting_radio_none"
+				name="d13C_stdz_setting"
+				value="d13C_stdz_setting_none"
+				form="mainform"
+				{{'checked=true' if payload['d13C_stdz_setting'] == 'd13C_stdz_setting_none'}}
+				>
+			No standardization
+			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
+				Only rely on working gas composition to constrain δ<sup>13</sup>C values.
+			</div>
+			<input
+				type="radio"
+				id="d13C_stdz_setting_radio_1pt"
+				name="d13C_stdz_setting"
+				value="d13C_stdz_setting_1pt"
+				form="mainform"
+				{{'checked=true' if payload['d13C_stdz_setting'] == 'd13C_stdz_setting_1pt'}}
+				>
+			Single-point standardization (shift all δ<sup>13</sup>C values by a constant offset)
+			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
+				Requires that each session includes one or more samples with a non-empty
+				<span class="field">Nominal_d13C_VPDB</span> field.
+			</div>
+			<input
+				type="radio"
+				id="d13C_stdz_setting_radio_2pt"
+				name="d13C_stdz_setting"
+				value="d13C_stdz_setting_2pt"
+				form="mainform"
+				{{'checked=true' if payload['d13C_stdz_setting'] == 'd13C_stdz_setting_2pt'}}
+				>
+			Two-point standardization (apply affine transformation to δ<sup>13</sup>C values)
+			<br>
+			<div class="settings_readme" style="margin:0;margin-left:2.4em;">
+				Requires that each session includes two or more samples with a non-empty
+				<span class="field">Nominal_d13C_VPDB</span> field.
+				<br>
+				It is critical that these values cover a large enough range to avoid gross extrapolation errors.
+			</div>
+
+			<h2>Oxygen-18 Standardization Settings</h2>
+
+			<input
+				type="radio"
+				id="d18O_stdz_setting_radio_none"
+				name="d18O_stdz_setting"
+				value="d18O_stdz_setting_none"
+				form="mainform"
+				{{'checked=true' if payload['d18O_stdz_setting'] == 'd18O_stdz_setting_none'}}
+				>
+			No standardization
+			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
+				Only rely on working gas composition to constrain δ<sup>18</sup>O values.
+			</div>
+			<input
+				type="radio"
+				id="d18O_stdz_setting_radio_1pt"
+				name="d18O_stdz_setting"
+				value="d18O_stdz_setting_1pt"
+				form="mainform"
+				{{'checked=true' if payload['d18O_stdz_setting'] == 'd18O_stdz_setting_1pt'}}
+				>
+			Single-point standardization (shift all δ<sup>18</sup>O values by a constant offset)
+			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
+				Requires that each session includes one or more samples with a non-empty
+				<span class="field">Nominal_d18O_VPDB</span> field.
+				<br>
+				Remember to define a suitable (<sup>18</sup>O/<sup>16</sup>O) acid fractionation factor below.
+			</div>
+			<input
+				type="radio"
+				id="d18O_stdz_setting_radio_2pt"
+				name="d18O_stdz_setting"
+				value="d18O_stdz_setting_2pt"
+				form="mainform"
+				{{'checked=true' if payload['d18O_stdz_setting'] == 'd18O_stdz_setting_2pt'}}
+				>
+			Two-point standardization (apply affine transformation to δ<sup>18</sup>O values)
+			<br>
+			<div class="settings_readme" style="margin:0;margin-left:2.4em;">
+				Requires that each session includes two or more samples with a non-empty
+				<span class="field">Nominal_d18O_VPDB</span> field.
+				<br>
+				It is critical that these values cover a large enough range to avoid gross extrapolation errors.
+				<br>
+				Remember to define a suitable (<sup>18</sup>O/<sup>16</sup>O) acid fractionation factor below.
+			</div>
+
+
+			<h2>Working Gas Composition Settings</h2>
+<!-- 			<label for="wg_setting" style="margin-left:0">Working gas composition is:</label><br> -->
 			<input
 				type="radio"
 				id="wg_setting_radio_fromsample"
 				name="wg_setting"
 				value="wg_setting_fromsample"
 				form="mainform"
-				{{'checked=true' if payload['wg_setting'] == 'wg_setting_fromsample'}}
-				onchange="wg_setting_show_fromsample()">
-			Based on analyses of a carbonate sample
-			<br>
+				{{'checked=true' if payload['wg_setting'] == 'wg_setting_fromsample'}}>
+<!-- 				onchange="wg_setting_show_fromsample()" -->
+			Based on carbonate standards analyzed in each session
+			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
+				Requires that each session includes one or more samples with
+				<br>
+				non-empty <span class="field">Nominal_d13C_VPDB</span> and <span class="field">Nominal_d18O_VPDB</span>
+				fields.
+				<br>
+				Remember to define a suitable (<sup>18</sup>O/<sup>16</sup>O) acid fractionation factor below.
+			</div>
+
 			<input
 				type="radio"
 				id="wg_setting_radio_explicit"
 				name="wg_setting"
 				value="wg_setting_explicit"
 				form="mainform"
-				{{'checked=true' if payload['wg_setting'] == 'wg_setting_explicit'}}
-				onchange="wg_setting_show_explicit()">
+				{{'checked=true' if payload['wg_setting'] == 'wg_setting_explicit'}}>
+<!-- 				onchange="wg_setting_show_explicit()"> -->
 			Explicitly defined in the raw data
+			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
+				Bulk composition of the WG must be explicitly defined in each line of the raw data,
+				<br>
+				using fields <span class="field">d13Cwg_VPDB</span> and
+				<span class="field">d18Owg_VSMOW</span>.
+			</div>
 
+<!-- 
 			<div id="wg_setting_fromsample_group" style="{{'display:none' if payload['wg_setting'] != 'wg_setting_fromsample'}}">
 				<div class="settings_readme">
 					Bulk WG composition is computed from analyses of the following sample:
@@ -149,9 +259,25 @@
 					Bulk composition of the WG must be explicitly defined in each line of the raw data, using fields <span class="field">d13Cwg_VPDB</span> and  <span class="field">d18Owg_VSMOW</span>.
 				</div>
 			</div>
+ -->
+			<h2>Acid Fractionation Settings</h2>
 
+			<input
+				type="text"
+				name="wg_setting_fromsample_acidfrac"
+				id="wg_setting_fromsample_acidfrac"
+				form="mainform"
+				size="12"
+				value="{{payload['wg_setting_fromsample_acidfrac']}}"
+				></input>
+			<label for="wg_setting_fromsample_acidfrac">(<sup>18</sup>O/<sup>16</sup>O) fractionation factor of acid reaction</label>
+			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
+				Only used for single-point or two-point δ<sup>18</sup>O standardization
+				<br>
+				and for computating WG composition based on carbonate standards.
+			</div>
 
-			<h2>Standardization Settings</h2>
+			<h2>Δ<sub>47</sub> Standardization Settings</h2>
 		
 			<div class="settings_readme">
 			In the text box below, specify the “true” Δ<sub>47</sub> values and the names of anchors, separated by a tab (one line per anchor).
