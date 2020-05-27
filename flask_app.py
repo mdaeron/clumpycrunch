@@ -43,7 +43,7 @@ __contact__ = 'daeron@lsce.ipsl.fr'
 __copyright__ = 'Copyright (c) 2020 Mathieu Daëron'
 __license__ = 'Modified BSD License - https://opensource.org/licenses/BSD-3-Clause'
 __date__ = '2020-04-22'
-__version__ = '2.0rc'
+__version__ = '2.1.dev1'
 
 rawdata_input_str = '''UID\tSession\tSample\td45\td46\td47\tNominal_d13C_VPDB\tNominal_d18O_VPDB
 A01\tSession01\tETH-1\t5.795017\t11.627668\t16.893512\t2.02\t-2.19
@@ -383,14 +383,14 @@ def proceed():
 			if 'Nominal_d13C_VPDB' in r:
 				if r['Sample'] in data.Nominal_d13C_VPDB:
 					if data.Nominal_d13C_VPDB[r['Sample']] != r['Nominal_d13C_VPDB']:
-						payload['error_msg'] = f"Inconsistent Nominal_d13C_VPDB field in sample {r['Sample']} (UID: {r['UID']})"
+						payload['error_msg'] = f"Inconsistent <span class='field'>Nominal_d13C_VPDB</span> value for {r['Sample']} (analysis: {r['UID']})."
 						return render_template('main.html', payload = payload, vD47crunch = vD47crunch)						
 				else:
 					data.Nominal_d13C_VPDB[r['Sample']] = r['Nominal_d13C_VPDB']
 			if 'Nominal_d18O_VPDB' in r:
 				if r['Sample'] in data.Nominal_d18O_VPDB:
 					if data.Nominal_d18O_VPDB[r['Sample']] != r['Nominal_d18O_VPDB']:
-						payload['error_msg'] = f"Inconsistent Nominal_d18O_VPDB field in sample {r['Sample']} (UID: {r['UID']})"
+						payload['error_msg'] = f"Inconsistent <span class='field'>Nominal_d18O_VPDB</span> value for {r['Sample']} (analysis {r['UID']})."
 						return render_template('main.html', payload = payload, vD47crunch = vD47crunch)						
 				else:
 					data.Nominal_d18O_VPDB[r['Sample']] = r['Nominal_d18O_VPDB']

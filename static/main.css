@@ -66,6 +66,11 @@ label {
 	color: #000000;
 }
 
+div.error .field {
+	border: 1px solid #e88;
+	background-color: #eaa;
+}
+
 #settings {
 /* 
 	padding-top: 1ex;

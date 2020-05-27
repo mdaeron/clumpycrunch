@@ -13,20 +13,28 @@
 		<h1>
 			ClumpyCrunch
 			<div class="floatright">
-				v2.0β
+				<span style="padding-right:0.06em">v</span>2.1
 			</div>
 		</h1>
 
 			{% if payload['error_msg'] %}
 			<div class="error">
 				<h2 class="error">Something went wrong...</h2>
-					{{ payload['error_msg'] }}
+					{{ payload['error_msg'] | safe }}
 			</div>
 			{% endif %}
 
 			<h2>Oxygen-17 Correction Settings</h2>
 		
+			<div class="settings_readme" style="margin-bottom:3ex;">
+			The <sup>17</sup>O correction parameters below are used to compute
+			δ<sup>13</sup>C, δ<sup>18</sup>O,
 			<br>
+			and raw clumped-isotope Δ values from working-gas δ values
+			<br>(computational details in
+			<a href="https://doi.org/10.1016/j.chemgeo.2016.08.014">Daëron et al., 2016</a>).
+			</div>
+
 			<input
 				type="text"
 				name="o17_R13_VPDB"
@@ -70,9 +78,39 @@
 				></input>
 			<label for="o17_R13_VPDB">Triple oxygen isotope exponent (λ)</label>
 
-<!-- 
-			<h2>WG Composition and δ<sup>13</sup>C,  δ<sup>18</sup>O Standardization Settings</h2>
- -->
+			<h2>Working Gas Composition Settings</h2>
+			<input
+				type="radio"
+				id="wg_setting_radio_fromsamples"
+				name="wg_setting"
+				value="wg_setting_fromsamples"
+				form="mainform"
+				{{'checked=true' if payload['wg_setting'] == 'wg_setting_fromsamples'}}>
+			Based on carbonate standards analyzed in each session
+			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
+				Requires that each session includes one or more samples with
+				<br>
+				non-empty <span class="field">Nominal_d13C_VPDB</span> and <span class="field">Nominal_d18O_VPDB</span>
+				fields.
+				<br>
+				Remember to define a suitable (<sup>18</sup>O/<sup>16</sup>O) acid fractionation factor below.
+			</div>
+
+			<input
+				type="radio"
+				id="wg_setting_radio_explicit"
+				name="wg_setting"
+				value="wg_setting_explicit"
+				form="mainform"
+				{{'checked=true' if payload['wg_setting'] == 'wg_setting_explicit'}}>
+			Explicitly defined in the raw data
+			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
+				Bulk composition of the WG must be explicitly defined in each line of the raw data,
+				<br>
+				using fields <span class="field">d13Cwg_VPDB</span> and
+				<span class="field">d18Owg_VSMOW</span>.
+			</div>
+
 			<h2>Carbon-13 Standardization Settings</h2>
 
 			<input
@@ -166,41 +204,13 @@
 			</div>
 
 
-			<h2>Working Gas Composition Settings</h2>
-			<input
-				type="radio"
-				id="wg_setting_radio_fromsamples"
-				name="wg_setting"
-				value="wg_setting_fromsamples"
-				form="mainform"
-				{{'checked=true' if payload['wg_setting'] == 'wg_setting_fromsamples'}}>
-			Based on carbonate standards analyzed in each session
-			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
-				Requires that each session includes one or more samples with
-				<br>
-				non-empty <span class="field">Nominal_d13C_VPDB</span> and <span class="field">Nominal_d18O_VPDB</span>
-				fields.
-				<br>
-				Remember to define a suitable (<sup>18</sup>O/<sup>16</sup>O) acid fractionation factor below.
-			</div>
-
-			<input
-				type="radio"
-				id="wg_setting_radio_explicit"
-				name="wg_setting"
-				value="wg_setting_explicit"
-				form="mainform"
-				{{'checked=true' if payload['wg_setting'] == 'wg_setting_explicit'}}>
-			Explicitly defined in the raw data
-			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
-				Bulk composition of the WG must be explicitly defined in each line of the raw data,
-				<br>
-				using fields <span class="field">d13Cwg_VPDB</span> and
-				<span class="field">d18Owg_VSMOW</span>.
-			</div>
-
 			<h2>Acid Fractionation Settings</h2>
 
+			<div class="settings_readme" style="margin-bottom:3ex;">
+				Only used for computing WG composition based on carbonate standards
+				<br>
+				and for single-point or two-point δ<sup>18</sup>O standardization.
+			</div>
 			<input
 				type="text"
 				name="acidfrac_setting"
@@ -210,19 +220,15 @@
 				value="{{payload['acidfrac_setting']}}"
 				></input>
 			<label for="acidfrac_setting">(<sup>18</sup>O/<sup>16</sup>O) fractionation factor of acid reaction</label>
-			<div class="settings_readme" style="margin:0;margin-left:2.4em;margin-bottom:1ex;">
-				Only used for single-point or two-point δ<sup>18</sup>O standardization
-				<br>
-				and for computating WG composition based on carbonate standards.
-			</div>
 
 			<h2>Δ<sub>47</sub> Standardization Settings</h2>
 		
-			<div class="settings_readme">
-			In the text box below, specify the “true” Δ<sub>47</sub> values and the names of anchors, separated by a tab (one line per anchor).
-			</div>
-			<label for="rf_input_str" style="margin-left:0">Absolute Δ<sub>47</sub> Reference Frame:</label>
+			<label for="rf_input_str" style="margin-left:0">“Absolute” Δ<sub>47</sub> Reference Frame:</label>
+			<div class="settings_readme" style="margin-bottom:2ex;">
+			In the text box below, specify the “true” Δ<sub>47</sub> values and sample names of anchors,
 			<br>
+			separated by a single tab character (one line per anchor).
+			</div>
 			<textarea name="rf_input_str" id="rf_input_textarea" form="mainform" cols="24" rows="6">{{payload['rf_input_str']}}</textarea>
 			
 			<br><br>
@@ -261,7 +267,10 @@
 				Independently known oxygen-17 anomalies may be provided as <span class="field">D17O</span>
 				(in ‰ relative to VSMOW, with the λ value specified above), and are assumed to be zero otherwise.
 				Working-gas deltas <span class="field">d48</span> and <span class="field">d49</span> may also be
-				specified (treated as NaN otherwise).
+				specified (treated as NaN otherwise). Other optional fields are
+				<span class="field">d13Cwg_VPDB</span>, <span class="field">d18Owg_VSMOW</span> (see “Working Gas Composition Settings” above),
+				<span class="field">Nominal_d13C_VPDB</span>, and <span class="field">Nominal_d18O_VPDB</span>
+				(see “Carbon-13 Standardization”, “Oxygen-18 Standardization”, “Working Gas Composition” settings above).
 			</div>
 
 			<textarea name="rawdata_input_str" id="rawdata_input_textarea" form="mainform" cols="100" rows="21">{{payload['rawdata_input_str']}}</textarea>
