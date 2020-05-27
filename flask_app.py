@@ -439,7 +439,8 @@ def proceed():
 	payload['display_results'] = True
 	payload['csv_of_sessions'] = csv
 
-	summary, tosessions = data.table_of_sessions(save_to_file = False, print_out = False)
+	summary = data.summary(save_to_file = False, print_out = False)
+	tosessions = data.table_of_sessions(save_to_file = False, print_out = False)
 	payload['summary'] = pretty_table(summary, header = 0)
 	payload['summary_rows'] = len(payload['summary'].splitlines())+2
 	payload['summary_cols'] = len(payload['summary'].splitlines()[0])
