@@ -13,7 +13,6 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import base64
 from werkzeug.wsgi import FileWrapper
 
-
 from matplotlib import rcParams
 
 # rcParams['backend'] = 'Agg'
@@ -43,7 +42,7 @@ __contact__ = 'daeron@lsce.ipsl.fr'
 __copyright__ = 'Copyright (c) 2020 Mathieu Daëron'
 __license__ = 'Modified BSD License - https://opensource.org/licenses/BSD-3-Clause'
 __date__ = '2020-04-22'
-__version__ = '2.1.dev1'
+__version__ = '2.1.dev2'
 
 rawdata_input_str = '''UID\tSession\tSample\td45\td46\td47\tNominal_d13C_VPDB\tNominal_d18O_VPDB
 A01\tSession01\tETH-1\t5.795017\t11.627668\t16.893512\t2.02\t-2.19
@@ -452,8 +451,9 @@ def proceed():
 
 	tosamples = data.table_of_samples(save_to_file = False, print_out = False)
 	payload['table_of_samples'] = pretty_table(tosamples)
-	payload['table_of_samples_rows'] = len(payload['table_of_samples'].splitlines())+1
-	payload['table_of_samples_cols'] = len(payload['table_of_samples'].splitlines()[0])
+	payload['table_of_samples'] = payload['table_of_samples'][:] + 'NB: d18O_VSMOW is the composition of the analyzed CO2.'
+	payload['table_of_samples_rows'] = len(payload['table_of_samples'].splitlines())
+	payload['table_of_samples_cols'] = len(payload['table_of_samples'].splitlines()[0])+1
 	payload['table_of_samples_csv'] = make_csv(tosamples)
 
 	toanalyses = data.table_of_analyses(save_to_file = False, print_out = False)
@@ -487,7 +487,7 @@ def proceed():
 		payload['report'] += f"\n\nWG compositions specified by user.\n"
 	
 	payload['report'] += f"\n\nSUMMARY:\n{payload['summary']}"
-	payload['report'] += f"\n\nSAMPLES:\n{payload['table_of_samples']}"
+	payload['report'] += f"\n\nSAMPLES:\n{payload['table_of_samples']}\n"
 	payload['report'] += f"\n\nSESSIONS:\n{payload['table_of_sessions']}"
 	payload['report'] += f"\n\nANALYSES:\n{payload['table_of_analyses']}"
 	payload['report'] += covars
