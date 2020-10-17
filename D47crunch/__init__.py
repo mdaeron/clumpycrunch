@@ -13,8 +13,8 @@ __author__    = 'Mathieu Daëron'
 __contact__   = 'daeron@lsce.ipsl.fr'
 __copyright__ = 'Copyright (c) 2020 Mathieu Daëron'
 __license__   = 'Modified BSD License - https://opensource.org/licenses/BSD-3-Clause'
-__date__      = '2020-05-16'
-__version__   = '0.5.dev3'
+__date__      = '2020-09-30'
+__version__   = '0.6.2dev1'
 
 import os
 import numpy as np
@@ -27,6 +27,7 @@ from lmfit import Minimizer, Parameters, report_fit
 from matplotlib import pyplot as ppl
 from datetime import datetime as dt
 from functools import wraps
+from colorsys import hls_to_rgb
 from matplotlib import rcParams
 
 rcParams['font.family'] = 'sans-serif'
@@ -307,16 +308,16 @@ class D47data(list):
 	[Levene's test]: https://en.wikipedia.org/wiki/Levene%27s_test
 	'''
 
-	SAMPLE_CONSTRAINING_WG_COMPOSITION = ('ETH-3', 1.71, -1.78) # (Bernasconi et al., 2018)
-	'''
-	Specifies the name, δ<sup>13</sup>C<sub>VPDB</sub> and δ<sup>18</sup>O<sub>VPDB</sub>
-	of the carbonate standard used by `D47data.wg()` to compute the isotopic composition
-	of the working gas in each session.
-
-	By default equal to `('ETH-3', 1.71, -1.78)` after [Bernasconi et al. (2018)].
-
-	[Bernasconi et al. (2018)]: https://doi.org/10.1029/2017GC007385
-	'''
+# 	SAMPLE_CONSTRAINING_WG_COMPOSITION = ('ETH-3', 1.71, -1.78) # (Bernasconi et al., 2018)
+# 	'''
+# 	Specifies the name, δ<sup>13</sup>C<sub>VPDB</sub> and δ<sup>18</sup>O<sub>VPDB</sub>
+# 	of the carbonate standard used by `D47data.wg()` to compute the isotopic composition
+# 	of the working gas in each session.
+# 
+# 	By default equal to `('ETH-3', 1.71, -1.78)` after [Bernasconi et al. (2018)].
+# 
+# 	[Bernasconi et al. (2018)]: https://doi.org/10.1029/2017GC007385
+# 	'''
 
 	ALPHA_18O_ACID_REACTION = round(np.exp(3.59 / (90 + 273.15) - 1.79e-3), 6)  # (Kim et al., 2007, calcite)
 	'''
@@ -630,7 +631,12 @@ class D47data(list):
 			X = [r['d45'] for r in db]
 			Y = [R45R46_standards[r['Sample']][0] for r in db]
 			x1, x2 = np.min(X), np.max(X)
-			wgcoord = x1/(x1-x2)
+
+			if x1 < x2:
+				wgcoord = x1/(x1-x2)
+			else:
+				wgcoord = 999
+
 			if wgcoord < -.5 or wgcoord > 1.5:
 				# unreasonable to extrapolate to d45 = 0
 				R45_wg = np.mean([y/(1+x/1000) for x,y in zip(X,Y)])
@@ -641,7 +647,12 @@ class D47data(list):
 			X = [r['d46'] for r in db]
 			Y = [R45R46_standards[r['Sample']][1] for r in db]
 			x1, x2 = np.min(X), np.max(X)
-			wgcoord = x1/(x1-x2)
+
+			if x1 < x2:
+				wgcoord = x1/(x1-x2)
+			else:
+				wgcoord = 999
+
 			if wgcoord < -.5 or wgcoord > 1.5:
 				# unreasonable to extrapolate to d46 = 0
 				R46_wg = np.mean([y/(1+x/1000) for x,y in zip(X,Y)])
@@ -660,64 +671,64 @@ class D47data(list):
 				r['d18Owg_VSMOW'] = d18Owg_VSMOW
 		
 
-	@make_verbal
-	def wg_old(self, sample = '', d13C_vpdb = '', d18O_vpdb = '', a18_acid = ''):
-		'''
-		Compute bulk composition of the working gas for each session
-		based on the average composition, within each session,
-		of a given sample.
-		'''
-
-		self.msg('Computing WG composition:')
-
-		if sample == '':
-			sample = self.SAMPLE_CONSTRAINING_WG_COMPOSITION[0]
-		if d13C_vpdb == '':
-			d13C_vpdb = self.SAMPLE_CONSTRAINING_WG_COMPOSITION[1]
-		if d18O_vpdb == '':
-			d18O_vpdb = self.SAMPLE_CONSTRAINING_WG_COMPOSITION[2]
-		if a18_acid == '':
-			a18_acid = self.ALPHA_18O_ACID_REACTION
-
-		assert a18_acid, f'Acid fractionation value should differ from zero.'
-
-		R13_s = self.R13_VPDB * (1 + d13C_vpdb / 1000)
-		R17_s = self.R17_VPDB * ((1 + d18O_vpdb / 1000) * a18_acid) ** self.lambda_17
-		R18_s = self.R18_VPDB * (1 + d18O_vpdb / 1000) * a18_acid
-
-		C12_s = 1 / (1 + R13_s)
-		C13_s = R13_s / (1 + R13_s)
-		C16_s = 1 / (1 + R17_s + R18_s)
-		C17_s = R17_s / (1 + R17_s + R18_s)
-		C18_s = R18_s / (1 + R17_s + R18_s)
-
-		C626_s = C12_s * C16_s ** 2
-		C627_s = 2 * C12_s * C16_s * C17_s
-		C628_s = 2 * C12_s * C16_s * C18_s
-		C636_s = C13_s * C16_s ** 2
-		C637_s = 2 * C13_s * C16_s * C17_s
-		C727_s = C12_s * C17_s ** 2
-
-		R45_s = (C627_s + C636_s) / C626_s
-		R46_s = (C628_s + C637_s + C727_s) / C626_s
-
-		for s in self.sessions:
-			db = [r for r in self.sessions[s]['data'] if r['Sample'] == sample]
-			assert db, f'Sample "{sample}" not found in session "{s}".'
-			d45_s = np.mean([r['d45'] for r in db])
-			d46_s = np.mean([r['d46'] for r in db])
-			R45_wg = R45_s / (1 + d45_s / 1000)
-			R46_wg = R46_s / (1 + d46_s / 1000)
-
-			d13Cwg_VPDB, d18Owg_VSMOW = self.compute_bulk_delta(R45_wg, R46_wg)
-
-			self.msg(f'Session {s} WG:   δ13C_VPDB = {d13Cwg_VPDB:.3f}   δ18O_VSMOW = {d18Owg_VSMOW:.3f}')
-
-			self.sessions[s]['d13Cwg_VPDB'] = d13Cwg_VPDB
-			self.sessions[s]['d18Owg_VSMOW'] = d18Owg_VSMOW
-			for r in self.sessions[s]['data']:
-				r['d13Cwg_VPDB'] = d13Cwg_VPDB
-				r['d18Owg_VSMOW'] = d18Owg_VSMOW
+# 	@make_verbal
+# 	def wg_old(self, sample = '', d13C_vpdb = '', d18O_vpdb = '', a18_acid = ''):
+# 		'''
+# 		Compute bulk composition of the working gas for each session
+# 		based on the average composition, within each session,
+# 		of a given sample.
+# 		'''
+# 
+# 		self.msg('Computing WG composition:')
+# 
+# 		if sample == '':
+# 			sample = self.SAMPLE_CONSTRAINING_WG_COMPOSITION[0]
+# 		if d13C_vpdb == '':
+# 			d13C_vpdb = self.SAMPLE_CONSTRAINING_WG_COMPOSITION[1]
+# 		if d18O_vpdb == '':
+# 			d18O_vpdb = self.SAMPLE_CONSTRAINING_WG_COMPOSITION[2]
+# 		if a18_acid == '':
+# 			a18_acid = self.ALPHA_18O_ACID_REACTION
+# 
+# 		assert a18_acid, f'Acid fractionation value should differ from zero.'
+# 
+# 		R13_s = self.R13_VPDB * (1 + d13C_vpdb / 1000)
+# 		R17_s = self.R17_VPDB * ((1 + d18O_vpdb / 1000) * a18_acid) ** self.lambda_17
+# 		R18_s = self.R18_VPDB * (1 + d18O_vpdb / 1000) * a18_acid
+# 
+# 		C12_s = 1 / (1 + R13_s)
+# 		C13_s = R13_s / (1 + R13_s)
+# 		C16_s = 1 / (1 + R17_s + R18_s)
+# 		C17_s = R17_s / (1 + R17_s + R18_s)
+# 		C18_s = R18_s / (1 + R17_s + R18_s)
+# 
+# 		C626_s = C12_s * C16_s ** 2
+# 		C627_s = 2 * C12_s * C16_s * C17_s
+# 		C628_s = 2 * C12_s * C16_s * C18_s
+# 		C636_s = C13_s * C16_s ** 2
+# 		C637_s = 2 * C13_s * C16_s * C17_s
+# 		C727_s = C12_s * C17_s ** 2
+# 
+# 		R45_s = (C627_s + C636_s) / C626_s
+# 		R46_s = (C628_s + C637_s + C727_s) / C626_s
+# 
+# 		for s in self.sessions:
+# 			db = [r for r in self.sessions[s]['data'] if r['Sample'] == sample]
+# 			assert db, f'Sample "{sample}" not found in session "{s}".'
+# 			d45_s = np.mean([r['d45'] for r in db])
+# 			d46_s = np.mean([r['d46'] for r in db])
+# 			R45_wg = R45_s / (1 + d45_s / 1000)
+# 			R46_wg = R46_s / (1 + d46_s / 1000)
+# 
+# 			d13Cwg_VPDB, d18Owg_VSMOW = self.compute_bulk_delta(R45_wg, R46_wg)
+# 
+# 			self.msg(f'Session {s} WG:   δ13C_VPDB = {d13Cwg_VPDB:.3f}   δ18O_VSMOW = {d18Owg_VSMOW:.3f}')
+# 
+# 			self.sessions[s]['d13Cwg_VPDB'] = d13Cwg_VPDB
+# 			self.sessions[s]['d18Owg_VSMOW'] = d18Owg_VSMOW
+# 			for r in self.sessions[s]['data']:
+# 				r['d13Cwg_VPDB'] = d13Cwg_VPDB
+# 				r['d18Owg_VSMOW'] = d18Owg_VSMOW
 
 
 	def compute_bulk_delta(self, R45, R46, D17O = 0):
@@ -1501,110 +1512,6 @@ class D47data(list):
 			ppl.close(sp.fig)
 
 
-# 	def plot_sessions_old(self, dir = 'plots', figsize = (8,8)):
-# 		'''
-# 		Generate session plots and save them to disk.
-# 
-# 		__Parameters__
-# 
-# 		+ `dir`: the directory in which to save the plots
-# 		+ `figsize`: the width and height (in inches) of each plot
-# 		'''
-# 		if not os.path.exists(dir):
-# 			os.makedirs(dir)
-# 		anchor_color = 'r'
-# 		unknown_color = 'b'
-# 
-# 		xmin = min([r['d47'] for r in self])
-# 		xmax = max([r['d47'] for r in self])
-# 		xmin -= (xmax - xmin)/10
-# 		xmax += (xmax - xmin)/11
-# 
-# 		ymin = min([r['D47'] for r in self])
-# 		ymax = max([r['D47'] for r in self])
-# 		ymin -= (ymax - ymin)/10
-# 		ymax += (ymax - ymin)/11
-# 
-# 		repl_kw = dict(ls = 'None', marker = 'x', mfc = 'None', ms = 4, mew = .67, alpha = 1)
-# 		avg_kw = dict(ls = '-', marker = 'None', lw = .67, alpha = .67)
-# 		for session in self.sessions:
-# 			fig = ppl.figure( figsize = figsize)
-# 			for sample in self.anchors:
-# 				db = [r for r in self.samples[sample]['data'] if r['Session'] == session]
-# 				if len(db):
-# 					repl_kw['mec'] = anchor_color
-# 					X = [r['d47'] for r in db]
-# 					Y = [r['D47'] for r in db]
-# 					ppl.plot(X, Y, **repl_kw)
-# 
-# 					avg_kw['color'] = anchor_color
-# 					X = [min(X)-.5, max(X)+.5]
-# 					Y = [self.samples[sample]['D47']] * 2
-# 					ppl.plot(X, Y, **avg_kw)
-# 
-# 					outliers = [r for r in db if abs(r['D47'] - self.Nominal_D47[r['Sample']])>.1]
-# 					for r in outliers:
-# 						print(r['UID'], r['Sample'], r['D47'])
-# 					X = [r['d47'] for r in outliers]
-# 					Y = [r['D47'] for r in outliers]
-# 					ppl.plot(X, Y, 'o', mfc = 'None', mec = (1,0,1), mew = 2)
-# 
-# 			for sample in self.unknowns:
-# 
-# 				db = [r for r in self.samples[sample]['data'] if r['Session'] == session]
-# 				if len(db):
-# 					repl_kw['mec'] = unknown_color
-# 					X = [r['d47'] for r in db]
-# 					Y = [r['D47'] for r in db]
-# 					ppl.plot(X, Y, **repl_kw)
-# 
-# 					avg_kw['color'] = unknown_color
-# 					X = [min(X)-.19, max(X)+.19]
-# 					Y = [self.samples[sample]['D47']] * 2
-# 					ppl.plot(X, Y, **avg_kw)
-# 
-# 			XI,YI = np.meshgrid(np.linspace(xmin, xmax), np.linspace(ymin, ymax))
-# 			SI = np.array([[self.standardization_error(session, xi, yi) for xi in XI[0,:]] for yi in YI[:,0]])
-# 			rng = np.max(SI) - np.min(SI)
-# 			if rng <= 0.01:
-# 				cinterval = 0.001
-# 			elif rng <= 0.03:
-# 				cinterval = 0.004
-# 			elif rng <= 0.1:
-# 				cinterval = 0.01
-# 			elif rng <= 0.3:
-# 				cinterval = 0.03
-# 			else:
-# 				cinterval = 0.1
-# 			cval = [np.ceil(SI.min() / .001) * .001 + k * cinterval for k in range(int(np.ceil((SI.max() - SI.min()) / cinterval)))]
-# 			cs = ppl.contour(XI, YI, SI, cval, colors = anchor_color, alpha = .5)
-# 			ppl.clabel(cs)
-# 
-# 			ppl.axis([xmin, xmax, ymin, ymax])
-# 			ppl.xlabel('δ$_{47}$ (‰ WG)')
-# 			ppl.ylabel('Δ$_{47}$ (‰)')
-# 			ppl.grid(alpha = .15)
-# 			ppl.title(session, weight = 'bold')
-# 			ppl.savefig(f'{dir}/D47model_{session}.pdf')
-# 			ppl.close(fig)
-
-
-# 	def sample_D47_covar(self, sample_1, sample_2 = ''):
-# 		'''
-# 		Covariance between Δ47 values of samples
-#
-# 		Returns the covariance (or the variance, if sample_1 == sample_2)
-# 		between the average Δ47 values of two samples. Also returns the
-# 		variance if only sample_1 is specified.
-# 		'''
-# 		i = self.standardization.var_names.index(f'D47_{pf(sample_1)}')
-# 		if sample_2 in [sample_1,'']:
-# 			return self.standardization.covar[i,i]
-# 		else:
-# 			j = self.standardization.var_names.index(f'D47_{pf(sample_2)}')
-# 			return self.standardization.covar[i,j]
-#
-
 	@make_verbal
 	def consolidate_samples(self):
 		'''
@@ -2024,13 +1931,15 @@ class D47data(list):
 		):
 		'''
 		Generate plot for a single session
-		'''		
+		'''
 		out = SessionPlot()
+		anchors = [a for a in self.anchors if [r for r in self.sessions[session]['data'] if r['Sample'] == a]]
+		unknowns = [u for u in self.unknowns if [r for r in self.sessions[session]['data'] if r['Sample'] == u]]
 		
 		if fig == 'new':
 			out.fig = ppl.figure(figsize = (6,6))
 			ppl.subplots_adjust(.1,.1,.9,.9)
-		
+
 		out.anchor_analyses, = ppl.plot(
 			[r['d47'] for r in self.sessions[session]['data'] if r['Sample'] in self.anchors],
 			[r['D47'] for r in self.sessions[session]['data'] if r['Sample'] in self.anchors],
@@ -2040,12 +1949,18 @@ class D47data(list):
 			[r['D47'] for r in self.sessions[session]['data'] if r['Sample'] in self.unknowns],
 			**kw_plot_unknowns)
 		out.anchor_avg = ppl.plot(
-			np.array([ np.array([-.5, .5]) + np.mean([r['d47'] for r in self.sessions[session]['data'] if r['Sample'] == sample]) for sample in self.anchors]).T,
-			np.array([ np.array([0, 0]) + self.Nominal_D47[sample] for sample in self.anchors]).T,
+			np.array([ np.array([
+				np.min([r['d47'] for r in self.sessions[session]['data'] if r['Sample'] == sample]) - 1,
+				np.max([r['d47'] for r in self.sessions[session]['data'] if r['Sample'] == sample]) + 1
+				]) for sample in anchors]).T,
+			np.array([ np.array([0, 0]) + self.Nominal_D47[sample] for sample in anchors]).T,
 			'-', **kw_plot_anchor_avg)
 		out.unknown_avg = ppl.plot(
-			np.array([ np.array([-.5, .5]) + np.mean([r['d47'] for r in self.sessions[session]['data'] if r['Sample'] == sample]) for sample in self.unknowns]).T,
-			np.array([ np.array([0, 0]) + self.unknowns[sample]['D47'] for sample in self.unknowns]).T,
+			np.array([ np.array([
+				np.min([r['d47'] for r in self.sessions[session]['data'] if r['Sample'] == sample]) - 1,
+				np.max([r['d47'] for r in self.sessions[session]['data'] if r['Sample'] == sample]) + 1
+				]) for sample in unknowns]).T,
+			np.array([ np.array([0, 0]) + self.unknowns[sample]['D47'] for sample in unknowns]).T,
 			'-', **kw_plot_unknown_avg)
 		if xylimits == 'constant':
 			x = [r['d47'] for r in self]
@@ -2057,11 +1972,12 @@ class D47data(list):
 			y1 -= h/20
 			y2 += h/20
 			ppl.axis([x1, x2, y1, y2])
-		elif xylimits != 'free':
+		elif xylimits == 'free':
 			x1, x2, y1, y2 = ppl.axis()
 		else:
 			x1, x2, y1, y2 = ppl.axis(xylimits)
-
+		
+		
 		if error_contour_interval != 'none':
 			xi, yi = np.linspace(x1, x2), np.linspace(y1, y2)
 			XI,YI = np.meshgrid(xi, yi)
@@ -2095,18 +2011,93 @@ class D47data(list):
 
 		return out
 
+	def plot_residuals(self, dir = 'plots'):
+		'''
+		Plot residuals of each analysis as a function of time (actually, as a function of
+		the order of analyses in the D47data() object)
+
+		+ `dir`: the directory in which to save the plot
+		'''
+		fig = ppl.figure(figsize = (8,3))
+		ppl.subplots_adjust(.1,.05,.78,.9)
+		N = len(self.anchors)
+		if N == 3:
+			colorz = {a: c for a,c in zip(self.anchors, [(0,0,1), (1,0,0), (0,2/3,0)])}
+		elif N == 4:
+			colorz = {a: c for a,c in zip(self.anchors, [(0,0,1), (1,0,0), (0,2/3,0), (.75,0,.75)])}
+		else:
+			colorz = {a: hls_to_rgb(k/N, .4, 1) for k,a in enumerate(self.anchors)}
+		session = self[0]['Session']
+		x1 = 0
+# 		ymax = np.max([1e3 * (r['D47'] - self.samples[r['Sample']]['D47']) for r in self])
+		x_sessions = {}
+		one_or_more_singlets = False
+		one_or_more_multiplets = False
+		for k,r in enumerate(self):
+			if r['Session'] != session:
+				x2 = k-1
+				x_sessions[session] = (x1+x2)/2
+				ppl.axvline(k - 0.5, color = 'k', lw = .5)
+				session = r['Session']
+				x1 = k
+			singlet = len(self.samples[r['Sample']]['data']) == 1
+			if r['Sample'] in self.unknowns:
+				if singlet:
+					one_or_more_singlets = True
+				else:
+					one_or_more_multiplets = True
+			kw = dict(
+				marker = 'x' if singlet else '+',
+				ms = 4 if singlet else 5,
+				ls = 'None',
+				mec = colorz[r['Sample']] if r['Sample'] in colorz else (0,0,0),
+				mew = 1,
+				alpha = 0.2 if singlet else 1,
+				)
+			ppl.plot(k, 1e3 * (r['D47'] - self.samples[r['Sample']]['D47']), **kw)
+		x2 = k
+		x_sessions[session] = (x1+x2)/2
+
+		ppl.axhspan(-self.repeatability['r_D47']*1000, self.repeatability['r_D47']*1000, color = 'k', alpha = .05, lw = 1)
+		ppl.text(len(self), self.repeatability['r_D47']*1000, f"   SD = {self.repeatability['r_D47']*1000:.1f} ppm", size = 9, alpha = .75, va = 'center')
+		ppl.axhspan(-self.repeatability['r_D47']*1000*self.t95, self.repeatability['r_D47']*1000*self.t95, color = 'k', alpha = .05, lw = 1)
+		ppl.text(len(self), self.repeatability['r_D47']*1000*self.t95, f"   95% CL: ± {self.repeatability['r_D47']*1000*self.t95:.1f} ppm", size = 9, alpha = .75, va = 'center')
+
+		ymax = ppl.axis()[3]
+		for s in x_sessions:
+			ppl.text(x_sessions[s], ymax +1, s, va = 'bottom', ha = 'center')
+
+		for s in self.anchors:
+			kw['marker'] = '+'
+			kw['ms'] = 5
+			kw['mec'] = colorz[s]
+			kw['label'] = s
+			kw['alpha'] = 1
+			ppl.plot([], [], **kw)
+
+		kw['mec'] = (0,0,0)
+
+		if one_or_more_singlets:
+			kw['marker'] = 'x'
+			kw['ms'] = 4
+			kw['alpha'] = .2
+			kw['label'] = 'unknowns (N$\\,$=$\\,$1)' if one_or_more_multiplets else 'unknowns'
+			ppl.plot([], [], **kw)
+
+		if one_or_more_multiplets:
+			kw['marker'] = '+'
+			kw['ms'] = 4
+			kw['alpha'] = 1
+			kw['label'] = 'unknowns (N$\\,$>$\\,$1)' if one_or_more_singlets else 'unknowns'
+			ppl.plot([], [], **kw)
+
+		ppl.legend(loc = 'lower left', bbox_to_anchor = (1.03, 0), borderaxespad = 0)
+		ppl.xticks([])
+		ppl.ylabel('Δ$_{47}$ residuals (ppm)')
+		ppl.axis([-1, len(self), None, None])
+		ppl.savefig(f'{dir}/D47_residuals.pdf')
+		ppl.close(fig)
+
 class SessionPlot():
 	def __init__(self):
 		pass
-
-# 			rng = np.max(SI) - np.min(SI)
-# 			if rng <= 0.01:
-# 				cinterval = 0.001
-# 			elif rng <= 0.03:
-# 				cinterval = 0.004
-# 			elif rng <= 0.1:
-# 				cinterval = 0.01
-# 			elif rng <= 0.3:
-# 				cinterval = 0.03
-# 			else:
-# 				cinterval = 0.1
